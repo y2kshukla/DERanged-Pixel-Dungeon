@@ -727,10 +727,8 @@ public class Hero extends Char {
 			return 999;
 		if (!hasTier(tier)) {
 			return 0;
-		} else {
-			return (int) (Math.min(1 + lvl*(isClassedLoosely(HeroClass.RAT_KING) ? 1.5f : 1f) - Talent.tierLevelThresholds[tier]*(isClassedLoosely(HeroClass.RAT_KING) ? 1.5f : 1), Talent.getMaxPoints(tier))
-                                - talentPointsSpent(tier) + bonusTalentPoints(tier));
 		}
+		return 999;
 	}
 
 	public int bonusTalentPoints(int tier){
