@@ -436,7 +436,7 @@ public class RoyalBrand extends Crossbow implements Talent.SpellbladeForgeryWeap
                 hero.sprite.idle();
                 hero.next();
             } else {
-                PathFinder.buildDistanceMap(Dungeon.hero.pos, BArray.or(Dungeon.level.passable, Dungeon.level.avoid, null), DuelistInfo.sneakDistance(hero));
+                PathFinder.buildDistanceMap(Dungeon.hero.pos, BArray.or(Dungeon.level.passable, Dungeon.level.avoid, null), DuelistInfo.sneakDistance(powerModifier));
                 int distance = PathFinder.distance[target];
                 if (distance == Integer.MAX_VALUE) {
                     GLog.w(Messages.get(Dagger.class, "ability_bad_position"));
