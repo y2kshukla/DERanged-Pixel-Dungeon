@@ -588,6 +588,7 @@ public class DM300 extends Mob {
 		if (Statistics.qualifiedForBossChallengeBadge){
 			Badges.validateBossChallengeCompleted();
 		}
+		Badges.validateBettererChoice(2);
 		Statistics.bossScores[2] += 3000;
 
 		LloydsBeacon beacon = Dungeon.hero.belongings.getItem(LloydsBeacon.class);

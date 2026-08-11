@@ -567,6 +567,7 @@ public class DwarfKing extends Mob {
 		if (Statistics.qualifiedForBossChallengeBadge){
 			Badges.validateBossChallengeCompleted();
 		}
+		Badges.validateBettererChoice(3);
 		Statistics.bossScores[3] += 4000;
 
 		Dungeon.level.unseal();

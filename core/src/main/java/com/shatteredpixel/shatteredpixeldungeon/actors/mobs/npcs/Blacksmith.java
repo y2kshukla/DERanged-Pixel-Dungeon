@@ -21,6 +21,7 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs;
 
+import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
@@ -473,7 +474,7 @@ public class Blacksmith extends NPC {
 			Quest.pickaxe = pick;
 
 			if (bossBeaten) favor += 1000;
-
+			Badges.validateBettererChoice(7);
 			Statistics.questScores[2] += favor;
 
 			if (favor >= 2500){

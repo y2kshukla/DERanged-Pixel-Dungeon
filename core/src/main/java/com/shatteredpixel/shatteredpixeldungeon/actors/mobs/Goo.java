@@ -306,6 +306,7 @@ public class Goo extends Mob {
 		if (Statistics.qualifiedForBossChallengeBadge){
 			Badges.validateBossChallengeCompleted();
 		}
+		Badges.validateBettererChoice(0);
 		Statistics.bossScores[0] += 1000;
 		
 		yell( Messages.get(this, "defeated") );

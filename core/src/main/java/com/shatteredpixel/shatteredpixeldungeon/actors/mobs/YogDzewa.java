@@ -553,6 +553,7 @@ public class YogDzewa extends Mob {
 		}
 		if (Dungeon.isChallenged(Challenges.NO_LEVELS))
 			new PotionOfExperience().apply(Dungeon.hero);
+		Badges.validateBettererChoice(4);
 		Statistics.bossScores[4] += 5000 + 1250*Statistics.spawnersAlive;
 
 		Badges.validateTakingTheMick(cause);
