@@ -21,6 +21,10 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.actors.hero;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.level;
+import static com.shatteredpixel.shatteredpixeldungeon.items.Item.updateQuickslot;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Bones;
@@ -263,10 +267,6 @@ import com.watabou.utils.Reflection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.level;
-import static com.shatteredpixel.shatteredpixeldungeon.items.Item.updateQuickslot;
 
 public class Hero extends Char {
 
@@ -1504,6 +1504,8 @@ public class Hero extends Char {
 
 		if (subClass.is(HeroSubClass.SLAYER) && buff(Awakening.class) == null) {
 			Buff.affect(this, Awakening.class).indicate();
+		} else if (buff(Awakening.class) != null && buff(Awakening.AwakeningCooldown.class) == null){
+			ActionIndicator.setAction(buff(Awakening.class));
 		}
 
 		if (buff(Undead.class) != null) {

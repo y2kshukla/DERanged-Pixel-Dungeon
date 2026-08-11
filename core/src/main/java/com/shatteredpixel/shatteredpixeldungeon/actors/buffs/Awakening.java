@@ -21,6 +21,8 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.actors.buffs;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
@@ -35,8 +37,6 @@ import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
 
 public class Awakening extends Buff implements ActionIndicator.Action {
 
@@ -194,6 +194,12 @@ public class Awakening extends Buff implements ActionIndicator.Action {
         @Override
         public int icon() {
             return BuffIndicator.TIME;
+        }
+
+        @Override
+        public void detach() {
+            super.detach();
+            ActionIndicator.refresh();
         }
 
         @Override
