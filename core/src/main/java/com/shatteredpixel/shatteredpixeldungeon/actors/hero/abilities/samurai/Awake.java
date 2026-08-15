@@ -45,7 +45,7 @@ public class Awake extends ArmorAbility {
 	}
 
 	@Override
-	protected void activate(ClassArmor armor, Hero hero, Integer target) {
+    public void activate(ClassArmor armor, Hero hero, Integer target) {
 
 		Buff.prolong(hero, awakeTracker.class, 10f + 5f * hero.pointsInTalent(Talent.AWAKE_DURATION));
 		if (hero.hasTalent(Talent.INSURANCE)) {

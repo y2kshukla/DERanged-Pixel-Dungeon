@@ -25,6 +25,7 @@ import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
+import com.shatteredpixel.shatteredpixeldungeon.utils.WarpPile;
 import com.watabou.noosa.ui.Component;
 import com.watabou.utils.Signal;
 
@@ -84,6 +85,10 @@ public class GameLog extends Component implements Signal.Listener<String> {
 					if (text.startsWith( GLog.HIGHLIGHT )) {
 						text = text.substring( GLog.HIGHLIGHT.length() );
 						color = CharSprite.NEUTRAL;
+					}
+					if (text.startsWith( GLog.WARP )) {
+						text = text.substring( GLog.WARP.length() );
+						color = WarpPile.COLOR;
 					}
 
 					if (lastEntry != null && color == lastColor && lastEntry.nLines < maxLines) {

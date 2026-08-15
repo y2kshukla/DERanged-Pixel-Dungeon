@@ -21,6 +21,8 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.duelist;
 
+import static com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.ratking.OmniAbility.markAbilityUsed;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
@@ -105,8 +107,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 
-import static com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.ratking.OmniAbility.markAbilityUsed;
-
 public class ElementalStrike extends ArmorAbility {
 
 	//TODO a few duplicates here (curse duplicates are fine)
@@ -157,7 +157,7 @@ public class ElementalStrike extends ArmorAbility {
 	}
 
 	@Override
-	protected void activate(ClassArmor armor, Hero hero, Integer target) {
+    public void activate(ClassArmor armor, Hero hero, Integer target) {
 		if (target == null){
 			return;
 		}

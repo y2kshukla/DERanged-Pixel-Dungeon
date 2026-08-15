@@ -138,6 +138,8 @@ public class BuffIndicator extends Component {
 	public static final int THROWN_WEP  = 85;
 
 	//arranged buffs
+	public static final int SCAM        = 131;
+	public static final int WARP        = 132;
 	public static final int FROSTBURN   = 133;
 	public static final int ERADICATION = 134;
 	public static final int PARRY		= 135;

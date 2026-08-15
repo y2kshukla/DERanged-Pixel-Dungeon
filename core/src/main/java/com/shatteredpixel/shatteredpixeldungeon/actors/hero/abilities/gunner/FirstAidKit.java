@@ -49,7 +49,7 @@ public class FirstAidKit extends ArmorAbility {
     }
 
     @Override
-    protected void activate(ClassArmor armor, Hero hero, Integer target) {
+    public void activate(ClassArmor armor, Hero hero, Integer target) {
 
         Buff.affect(hero, Healing.class).setHeal((int) 20 + 5 * hero.pointsInTalent(Talent.ADDITIONAL_MEDS), 0, 1 + hero.pointsInTalent(Talent.FASTER_HEALING));
         if (hero.pointsInTalent(Talent.THERAPEUTIC_BANDAGE) >= 1) {

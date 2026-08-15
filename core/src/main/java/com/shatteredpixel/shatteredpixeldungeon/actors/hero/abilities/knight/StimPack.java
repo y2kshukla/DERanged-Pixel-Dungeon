@@ -43,7 +43,7 @@ public class StimPack extends ArmorAbility {
 	}
 
 	@Override
-	protected void activate(ClassArmor armor, Hero hero, Integer target) {
+    public void activate(ClassArmor armor, Hero hero, Integer target) {
 		int damage = Math.round(hero.HT*(0.3f - 0.05f*(hero.pointsInTalent(Talent.BURDEN_RELIEF))));
 		if (hero.HP <= damage) {
 			GLog.w(Messages.get(this, "cannot_use"));

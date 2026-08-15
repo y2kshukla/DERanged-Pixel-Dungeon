@@ -43,7 +43,7 @@ public class HolyShield extends ArmorAbility {
 	}
 
 	@Override
-	protected void activate(ClassArmor armor, Hero hero, Integer target) {
+    public void activate(ClassArmor armor, Hero hero, Integer target) {
 
 		int shieldAmount = 25;
 		if (hero.hasTalent(Talent.BUFFER_BARRIER)) {

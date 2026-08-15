@@ -47,7 +47,7 @@ public class TreasureMap extends ArmorAbility {
 	}
 
 	@Override
-	protected void activate(ClassArmor armor, Hero hero, Integer target) {
+    public void activate(ClassArmor armor, Hero hero, Integer target) {
 		Sample.INSTANCE.play( Assets.Sounds.READ );
 		Buff.prolong(hero, Awareness.class, Awareness.DURATION);
 		Buff.prolong(hero, LuckTracker.class, 20 * (1 + 0.2f * hero.pointsInTalent(Talent.LONG_LUCK)));
