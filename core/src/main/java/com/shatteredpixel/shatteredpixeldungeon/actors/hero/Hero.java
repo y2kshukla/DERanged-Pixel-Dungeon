@@ -96,6 +96,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Tackle;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.TimeStasis;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Undead;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vertigo;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Warp;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarriorParry;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.chargearea.MutationBuff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.ArmorAbility;
@@ -132,6 +133,7 @@ import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.effects.SpellSprite;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Splash;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.EnergyParticle;
+import com.shatteredpixel.shatteredpixeldungeon.effects.particles.ExoParticle;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.GodfireParticle;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.ShadowParticle;
 import com.shatteredpixel.shatteredpixeldungeon.items.Ankh;
@@ -174,6 +176,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfExperience
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfHealing;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfMight;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfTalent;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.KromerPotion;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.PotionOfDivineInspiration;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.PotionOfMagicalSight;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.DarkGold;
@@ -2304,6 +2307,32 @@ public class Hero extends Char {
                 damage *= 1 + 0.1f * hero.pointsInTalent(Talent.TARGET_SPOTTING, Talent.RK_SNIPER);
             }
         }
+		if (buff(KromerPotion.Effect.class) != null){
+			if (enemy != null) {
+				int dmg = Random.Int(0, damage*2);
+				Char toHeal, toDamage;
+
+				if (Random.Int(3) == 0) {
+					toHeal = enemy;
+					toDamage = this;
+				} else {
+					toHeal = this;
+					toDamage = enemy;
+				}
+				toHeal.HP = Math.min(toHeal.HT, toHeal.HP + dmg);
+				toHeal.sprite.emitter().burst(Speck.factory(Speck.HEALING), 3);
+
+				if (toDamage == Dungeon.hero) {
+					Sample.INSTANCE.play(Assets.Sounds.MIMIC, 1f, 2f);
+					Warp.inflict(dmg, 0.5f);
+				} else {
+					Sample.INSTANCE.play(Assets.Sounds.DEGRADE, 1f, 2.5f);
+					toDamage.damage(dmg, toHeal);
+					toDamage.sprite.emitter().start(ExoParticle.FACTORY, 0.05f, 10);
+				}
+			}
+
+		}
 		if (isSubclassedLoosely(HeroSubClass.FIGHTER)) {
             if (wep == null && Random.Int(3) < hero.pointsInTalent(Talent.QUICK_STEP, Talent.RK_FIGHTER)) {
                 Buff.prolong(hero, Talent.QuickStep.class, 1.0001f);

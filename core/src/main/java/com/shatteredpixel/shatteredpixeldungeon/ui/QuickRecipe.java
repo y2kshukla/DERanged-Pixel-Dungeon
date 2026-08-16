@@ -56,6 +56,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfIc
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfMight;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfTalent;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfToxicEssence;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.KromerPotion;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.ExoticPotion;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.RedCrystal;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
@@ -423,6 +424,7 @@ public class QuickRecipe extends Component {
 				result.add(new QuickRecipe(new ElixirOfMight.Recipe()));
 				result.add(new QuickRecipe(new ElixirOfTalent.Recipe()));
 				result.add(new QuickRecipe(new DoNotDieElixir.Recipe()));
+				result.add(new QuickRecipe(new KromerPotion.Recipe()));
 				return result;
 			case 8:
 				result.add(new QuickRecipe(new UnstableSpell.Recipe(), new ArrayList<>(Arrays.asList(new Scroll.PlaceHolder(), new  Runestone.PlaceHolder())), new UnstableSpell()));

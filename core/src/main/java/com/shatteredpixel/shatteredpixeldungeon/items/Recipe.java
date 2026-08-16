@@ -46,6 +46,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfIc
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfMight;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfTalent;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfToxicEssence;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.KromerPotion;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.ExoticPotion;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.Kromer;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.RedCrystal;
@@ -250,7 +251,8 @@ public abstract class Recipe {
 		new UnstableIdentification.Recipe(),
 		new ScammingSpell.Recipe(),
 		new KromerScroll.Recipe(),
-		new DoNotDieElixir.Recipe()
+		new DoNotDieElixir.Recipe(),
+		new KromerPotion.Recipe()
 	};
 	
 	private static Recipe[] threeIngredientRecipes = new Recipe[]{
