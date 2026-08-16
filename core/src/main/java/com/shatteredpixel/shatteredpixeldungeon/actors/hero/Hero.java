@@ -80,6 +80,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicalCombo;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MindVision;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Momentum;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MonkEnergy;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.NoDeath;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.PainKiller;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Paralysis;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.PhysicalEmpower;
@@ -3506,16 +3507,17 @@ public class Hero extends Char {
 	//This is relevant because we call isAlive during drawing, which has both performance
 	//and thread coordination implications if that method calls buff(...) frequently
 	private Berserk berserk;
+	private NoDeath noDeath;
 
 	@Override
 	public boolean isAlive() {
-		
 		if (HP <= 0){
-			if (buff(Undead.class) != null) return true;
+			if (noDeath == null) noDeath = buff(NoDeath.class);
 			if (berserk == null) berserk = buff(Berserk.class);
-			return berserk != null && berserk.berserking();
+			return (berserk != null && berserk.berserking()) || (noDeath != null && noDeath.visualcooldown() > 0);
 		} else {
 			berserk = null;
+			noDeath = null;
 			return super.isAlive();
 		}
 	}

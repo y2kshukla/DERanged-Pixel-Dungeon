@@ -69,6 +69,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LostInventory;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicalSleep;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Momentum;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MonkEnergy;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.NoDeath;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Ooze;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.PainKiller;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Paralysis;
@@ -1296,7 +1297,7 @@ public abstract class Char extends Actor {
 			sprite.showStatusWithIcon(CharSprite.NEGATIVE, dmgText, icon);
 		}
 
-		if (HP < 0) HP = 0;
+		if (HP < 0 && buff(NoDeath.class) == null) HP = 0;
 
 		if (!isAlive()) {
 			if (Dungeon.isSpecialSeedEnabled(DungeonSeed.SpecialSeed.ALLIES) && Random.Int(3) == 0 && src instanceof Hero){

@@ -36,6 +36,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.CausticBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.InfernalBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.ShockingBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.UnstableBrew;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.DoNotDieElixir;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfAquaticRejuvenation;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfArcaneArmor;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfDragonsBlood;
@@ -248,7 +249,8 @@ public abstract class Recipe {
 		new UpgradeDust.Recipe(),
 		new UnstableIdentification.Recipe(),
 		new ScammingSpell.Recipe(),
-		new KromerScroll.Recipe()
+		new KromerScroll.Recipe(),
+		new DoNotDieElixir.Recipe()
 	};
 	
 	private static Recipe[] threeIngredientRecipes = new Recipe[]{
