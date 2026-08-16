@@ -27,15 +27,20 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AscensionChallenge;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Invisibility;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LockedFloor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Ooze;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Shrink;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.TimedShrink;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarpedEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.effects.FloatingText;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.DriedRose;
 import com.shatteredpixel.shatteredpixeldungeon.items.keys.SkeletonKey;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfExperience;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.GooBlob;
+import com.shatteredpixel.shatteredpixeldungeon.levels.traps.OozeTrap;
 import com.shatteredpixel.shatteredpixeldungeon.mechanics.Ballistica;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
@@ -64,6 +69,8 @@ public class Goo extends Mob {
 
 	private int pumpedUp = 0;
 	private int healInc = 1;
+	private boolean canZap;
+	private int zapCD = 2;
 
 	@Override
 	public int damageRoll() {
@@ -101,6 +108,10 @@ public class Goo extends Mob {
 
 	@Override
 	public boolean act() {
+		if (buff(WarpedEnemy.BossEffect.class) != null){
+			canZap = true;
+			if (zapCD > 0) zapCD--;
+		}
 
 		if (state != HUNTING && pumpedUp > 0){
 			pumpedUp = 0;
@@ -141,7 +152,9 @@ public class Goo extends Mob {
 
 	@Override
 	protected boolean canAttack( Char enemy ) {
-		if (pumpedUp > 0){
+		if (canZap && zapCD == 0){
+			return new Ballistica( pos, enemy.pos, Ballistica.MAGIC_BOLT).collisionPos == enemy.pos;
+		} else if (pumpedUp > 0){
 			//we check both from and to in this case as projectile logic isn't always symmetrical.
 			//this helps trim out BS edge-cases
 			return Dungeon.level.distance(enemy.pos, pos) <= 2
@@ -178,7 +191,17 @@ public class Goo extends Mob {
 
 	@Override
 	protected boolean doAttack( Char enemy ) {
-		if (pumpedUp == 1) {
+		if (canZap && zapCD == 0){
+			canZap = false;
+			zapCD = 6;
+			if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
+				sprite.zap( enemy.pos );
+				return false;
+			} else {
+				zap();
+				return true;
+			}
+		} else if (pumpedUp == 1) {
 			pumpedUp++;
 			((GooSprite)sprite).pumpUp( pumpedUp );
 
@@ -239,6 +262,37 @@ public class Goo extends Mob {
 			}
 		}
 		return result;
+	}
+
+	public static class DarkBolt{}
+
+	protected void zap() {
+		spend( 1f );
+
+		if (hit( this, enemy, 3.0f, true )) {
+			new OozeTrap().set(enemy.pos).activate();
+
+			int dmg = damageRoll()*2;
+			if (buff(Shrink.class) != null|| enemy.buff(TimedShrink.class) != null) dmg *= 0.6f;
+			dmg = Math.round(dmg * AscensionChallenge.statModifier(this));
+			enemy.damage( dmg, new DarkBolt() );
+			pumpedUp++;
+			Statistics.qualifiedForBossChallengeBadge = false;
+			Statistics.bossScores[0] -= 100;
+
+			if (enemy == Dungeon.hero && !enemy.isAlive()) {
+				Badges.validateDeathFromEnemyMagic();
+				Dungeon.fail( getClass() );
+				GLog.n( Messages.get(this, "bolt_kill") );
+			}
+		} else {
+			enemy.sprite.showStatus( CharSprite.NEUTRAL,  enemy.defenseVerb() );
+		}
+	}
+
+	public void onZapComplete() {
+		zap();
+		next();
 	}
 
 	@Override

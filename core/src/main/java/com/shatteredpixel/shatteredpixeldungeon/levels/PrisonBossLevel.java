@@ -21,6 +21,9 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.levels;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Assets.Environment.TILES_CITY;
+import static com.shatteredpixel.shatteredpixeldungeon.Assets.Environment.WATER_CITY;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Bones;
 import com.shatteredpixel.shatteredpixeldungeon.Challenges;
@@ -31,6 +34,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Regrowth;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.StormCloud;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ChampionEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Doom;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Tengu;
@@ -68,9 +72,6 @@ import com.watabou.utils.Random;
 import com.watabou.utils.Rect;
 
 import java.util.ArrayList;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Assets.Environment.TILES_CITY;
-import static com.shatteredpixel.shatteredpixeldungeon.Assets.Environment.WATER_CITY;
 
 public class PrisonBossLevel extends Level {
 	
@@ -456,6 +457,7 @@ public class PrisonBossLevel extends Level {
 				
 				tengu.state = tengu.HUNTING;
 				tengu.pos = tenguPos;
+				ChampionEnemy.rollWarp(tengu);
 				GameScene.add( tengu );
 				tengu.notice();
 

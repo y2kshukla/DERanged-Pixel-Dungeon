@@ -91,7 +91,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 
 	public enum State {
 		BURNING, LEVITATING, INVISIBLE, PARALYSED, FROZEN, ILLUMINATED, CHILLED, DARKENED, MARKED, HEALING, SHIELDED, HEARTS, GLOWING, AURA, JUDGED, ELECTRIC,
-        SHRUNK, FROSTBURNING, SPIRIT, VINECOVERED
+        SHRUNK, FROSTBURNING, SPIRIT, VINECOVERED, WARPED
 	}
 	
 	protected Animation idle;
@@ -116,6 +116,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	protected Emitter frostburning;
 	protected Emitter spirit;
     protected Emitter vines;
+	protected Emitter warped;
 
 	protected IceBlock iceBlock;
 	protected DarkBlock darkBlock;
@@ -526,6 +527,10 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
                 vines = emitter();
                 vines.start(VineParticle.FACTORY, 0.05f, 0 );
                 break;
+			case WARPED:
+				warped = emitter();
+				warped.pour(Speck.factory(Speck.WARPCLOUD), 0.35f);
+				break;
 		}
 	}
 
@@ -661,6 +666,12 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
                     vines = null;
                 }
                 break;
+			case WARPED:
+				if (warped != null) {
+					warped.on = false;
+					warped = null;
+				}
+				break;
 		}
 	}
 

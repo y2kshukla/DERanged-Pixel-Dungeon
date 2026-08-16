@@ -21,12 +21,16 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.levels;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Assets.Environment.TILES_PRISON;
+import static com.shatteredpixel.shatteredpixeldungeon.Assets.Environment.WATER_PRISON;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Bones;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ChampionEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.DwarfKing;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Imp;
@@ -55,9 +59,6 @@ import com.watabou.utils.Rect;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Assets.Environment.TILES_PRISON;
-import static com.shatteredpixel.shatteredpixeldungeon.Assets.Environment.WATER_PRISON;
 
 public class CityBossLevel extends Level {
 
@@ -334,6 +335,7 @@ public class CityBossLevel extends Level {
 		Mob.restoreAllies(this, Dungeon.hero.pos, doorPos);
 
 		DwarfKing boss = new DwarfKing();
+		ChampionEnemy.rollWarp(boss);
 		boss.state = boss.WANDERING;
 		boss.pos = pointToCell(arena.center());
 		GameScene.add( boss );

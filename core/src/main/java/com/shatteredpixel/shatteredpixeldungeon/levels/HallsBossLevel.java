@@ -21,6 +21,9 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.levels;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Assets.Environment.TILES_SEWERS;
+import static com.shatteredpixel.shatteredpixeldungeon.Assets.Environment.WATER_SEWERS;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Bones;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
@@ -29,6 +32,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AscensionChallenge;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ChampionEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.YogDzewa;
@@ -59,9 +63,6 @@ import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Assets.Environment.TILES_SEWERS;
-import static com.shatteredpixel.shatteredpixeldungeon.Assets.Environment.WATER_SEWERS;
 
 public class HallsBossLevel extends Level {
 
@@ -269,6 +270,7 @@ public class HallsBossLevel extends Level {
 		Dungeon.observe();
 
 		YogDzewa boss = new YogDzewa();
+		ChampionEnemy.rollWarp(boss);
 		boss.pos = exit() + width*3;
 
 		//push any char that is already here away

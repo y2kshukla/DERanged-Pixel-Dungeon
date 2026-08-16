@@ -39,6 +39,8 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Dread;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LockedFloor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Roots;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Terror;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vulnerable;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarpedEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
 import com.shatteredpixel.shatteredpixeldungeon.effects.BlobEmitter;
@@ -57,6 +59,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.DriedRose;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.LloydsBeacon;
 import com.shatteredpixel.shatteredpixeldungeon.items.bombs.Bomb;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfExperience;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.levels.PrisonBossLevel;
 import com.shatteredpixel.shatteredpixeldungeon.mechanics.Ballistica;
@@ -112,7 +115,15 @@ public class Tengu extends Mob {
 			return 20;
 		}
 	}
-	
+
+	@Override
+	public int attackProc(Char enemy, int damage) {
+		if (buff(WarpedEnemy.BossEffect.class) != null){
+			if (Random.Int(3) == 0) Buff.affect(enemy, Vulnerable.class, 2f);
+		}
+		return super.attackProc(enemy, damage);
+	}
+
 	@Override
 	public int drRoll() {
 		return super.drRoll() + Random.NormalIntRange(0, 5);
@@ -251,6 +262,16 @@ public class Tengu extends Mob {
 		
 		if (enemy == null) enemy = chooseEnemy();
 		if (enemy == null) enemy = Dungeon.hero; //jump away from hero if nothing else is being targeted
+
+		if (buff(WarpedEnemy.BossEffect.class) != null){
+			if (Random.Int(2) == 0){
+				BlinkingMan minion = new BlinkingMan();
+				minion.pos = pos;
+				minion.HP = minion.HT = HT / 12;
+				GameScene.add(minion);
+				ScrollOfTeleportation.appear(minion, minion.pos);
+			}
+		}
 		
 		int newPos;
 		if (Dungeon.level instanceof PrisonBossLevel){
@@ -397,6 +418,8 @@ public class Tengu extends Mob {
 				if (canUseAbility()){
 					return useAbility();
 				}
+				if (buff(WarpedEnemy.BossEffect.class) != null && Random.Int(2) == 0 )
+					jump();
 
 				recentlyAttackedBy.clear();
 				target = enemy.pos;

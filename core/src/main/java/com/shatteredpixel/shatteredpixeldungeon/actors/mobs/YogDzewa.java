@@ -33,6 +33,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Invisibility;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Light;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LockedFloor;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarpedEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarriorParry;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Sheep;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Beam;
@@ -49,6 +50,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfExperience
 import com.shatteredpixel.shatteredpixeldungeon.journal.Bestiary;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.mechanics.Ballistica;
+import com.shatteredpixel.shatteredpixeldungeon.mechanics.ShadowCaster;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
@@ -63,6 +65,7 @@ import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.GameMath;
 import com.watabou.utils.PathFinder;
+import com.watabou.utils.Point;
 import com.watabou.utils.Random;
 import com.watabou.utils.Reflection;
 
@@ -301,6 +304,9 @@ public class YogDzewa extends Mob {
 
 				abilityCooldown += Random.NormalFloat(MIN_ABILITY_CD, MAX_ABILITY_CD);
 				abilityCooldown -= (phase - 1);
+				if (buff(WarpedEnemy.BossEffect.class) != null){
+					abilityCooldown = Math.min(5, abilityCooldown);
+				}
 
 			} else {
 				spend(TICK);
@@ -418,6 +424,41 @@ public class YogDzewa extends Mob {
 		if (dmgTaken > 0) {
 			abilityCooldown -= dmgTaken / 10f;
 			summonCooldown -= dmgTaken / 10f;
+		}
+		if (buff(WarpedEnemy.BossEffect.class) != null){
+			boolean[] FOV = new boolean[Dungeon.level.length()];
+			Point c = Dungeon.level.cellToPoint(pos);
+			ShadowCaster.castShadow(c.x, c.y, Dungeon.level.width(), FOV, Dungeon.level.losBlocking, 6);
+
+			ArrayList<Char> affected = new ArrayList<>();
+
+			for (int i = 0; i < FOV.length; i++) {
+				if (FOV[i]) {
+					if (Dungeon.level.heroFOV[i] && !Dungeon.level.solid[i]) {
+						//TODO better vfx?
+						CellEmitter.center( i ).burst( ShadowParticle.CURSE, 8 );
+					}
+					Char ch = Actor.findChar(i);
+					if (ch != null){
+						if (ch instanceof YogDzewa || ch instanceof YogFist || ch instanceof Larva ||
+								ch instanceof YogRipper || ch instanceof YogEye || ch instanceof YogScorpio) {
+							continue;
+						}
+						affected.add(ch);
+					}
+				}
+			}
+
+			for (Char ch : affected){
+				//4x taken damage, which falls off at a rate of 17.5% per tile of distance
+				int damage = dmgTaken*4;
+				damage = Math.round(damage * (1f - .175f*Dungeon.level.distance(pos, ch.pos)));
+				damage -= ch.drRoll();
+				ch.damage(damage, this);
+				if (ch == Dungeon.hero && !ch.isAlive()) {
+					Dungeon.fail(YogDzewa.class);
+				}
+			}
 		}
 
 		if (phase < 4 && HP <= HT - 300*phase){

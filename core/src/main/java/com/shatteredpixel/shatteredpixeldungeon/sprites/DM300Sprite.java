@@ -23,6 +23,7 @@ package com.shatteredpixel.shatteredpixeldungeon.sprites;
 
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarpedEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.DM300;
 import com.shatteredpixel.shatteredpixeldungeon.effects.MagicMissile;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
@@ -86,9 +87,10 @@ public class DM300Sprite extends MobSprite {
 	public void zap( int cell ) {
 
 		super.zap( cell );
+		int type = MagicMissile.SPECK + (ch.buff(WarpedEnemy.BossEffect.class) != null ? Speck.CONFUSION : Speck.TOXIC);
 
 		MagicMissile.boltFromChar( parent,
-				MagicMissile.SPECK + Speck.TOXIC,
+				type,
 				this,
 				cell,
 				new Callback() {

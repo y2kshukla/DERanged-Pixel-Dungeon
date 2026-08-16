@@ -30,14 +30,18 @@ import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Barrier;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Blindness;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Degrade;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Doom;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LifeLink;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LockedFloor;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Speed;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarpedEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Sheep;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Beam;
 import com.shatteredpixel.shatteredpixeldungeon.effects.CellEmitter;
+import com.shatteredpixel.shatteredpixeldungeon.effects.MagicMissile;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Pushing;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.ElmoParticle;
@@ -150,8 +154,12 @@ public class DwarfKing extends Mob {
 		if (phase == 3) BossHealthBar.bleed(true);
 	}
 
+	private static boolean warped;
+
 	@Override
 	protected boolean act() {
+		warped = buff(WarpedEnemy.BossEffect.class) != null;
+
 		if (pos == CityBossLevel.throne){
 			throwItems();
 		}
@@ -604,6 +612,8 @@ public class DwarfKing extends Mob {
 		{
 			properties.add(Property.BOSS_MINION);
 			state = HUNTING;
+			if (warped)
+				Buff.affect(this, Speed.class, 200f);
 		}
 
 		@Override
@@ -617,6 +627,8 @@ public class DwarfKing extends Mob {
 		{
 			properties.add(Property.BOSS_MINION);
 			state = HUNTING;
+			if (warped)
+				Buff.affect(this, Speed.class, 200f);
 		}
 	}
 
@@ -624,6 +636,8 @@ public class DwarfKing extends Mob {
 		{
 			properties.add(Property.BOSS_MINION);
 			state = HUNTING;
+			if (warped)
+				Buff.affect(this, Speed.class, 200f);
 		}
 
 		@Override
@@ -639,6 +653,8 @@ public class DwarfKing extends Mob {
 		{
 			properties.add(Property.BOSS_MINION);
 			state = HUNTING;
+			if (warped)
+				Buff.affect(this, Speed.class, 200f);
 		}
 	}
 
@@ -788,6 +804,18 @@ public class DwarfKing extends Mob {
 				if (m instanceof DwarfKing){
 					int damage = m.HT / (Dungeon.isChallenged(Challenges.STRONGER_BOSSES) ? 18 : 12);
 					m.damage(damage, this);
+					if (warped) {
+						MagicMissile.boltFromChar(
+								m.sprite.parent,
+								MagicMissile.SHADOW_CONE,
+								m.sprite,
+								Dungeon.hero.pos,
+								() -> {
+									Buff.affect(Dungeon.hero, Blindness.class, 4f);
+									Dungeon.observe();
+								});
+						Sample.INSTANCE.play(Assets.Sounds.ZAP);
+					}
 				}
 			}
 		}

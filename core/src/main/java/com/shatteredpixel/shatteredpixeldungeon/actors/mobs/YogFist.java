@@ -43,6 +43,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LockedFloor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Ooze;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Roots;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Sleep;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarpedEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarriorParry;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
 import com.shatteredpixel.shatteredpixeldungeon.effects.CellEmitter;
@@ -89,6 +90,8 @@ public abstract class YogFist extends Mob {
 
 	protected void incrementRangedCooldown(){
 		rangedCooldown += Random.NormalFloat(8, 12);
+		if (Actor.findChar(Dungeon.level.exit() + 3*Dungeon.level.width()).buff(WarpedEnemy.BossEffect.class) != null)
+			rangedCooldown /= 3;
 	}
 
 	@Override

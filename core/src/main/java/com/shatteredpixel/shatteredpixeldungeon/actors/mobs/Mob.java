@@ -21,6 +21,8 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.actors.mobs;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Challenges;
@@ -39,6 +41,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ChampionEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Charm;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Command;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Corruption;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Degrade;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Dread;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.FirstAidBuff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.FlavourBuff;
@@ -60,6 +63,8 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.SoulMark;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.StimPack;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Terror;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vulnerable;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Warp;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarpedEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.chargearea.ArtifactRechargeArea;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.chargearea.BarrierRechargeArea;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.chargearea.WandRechargeArea;
@@ -77,6 +82,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.hero.spells.Stasis;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.DirectableAlly;
 import com.shatteredpixel.shatteredpixeldungeon.effects.CellEmitter;
 import com.shatteredpixel.shatteredpixeldungeon.effects.FloatingText;
+import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Surprise;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Wound;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.ShadowParticle;
@@ -124,8 +130,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
 
 public abstract class Mob extends Char {
 
@@ -561,7 +565,15 @@ public abstract class Mob extends Char {
 
 		int step = -1;
 
-		if (Dungeon.level.adjacent( pos, target )) {
+		if (buff(WarpedEnemy.class) != null){
+			path = Dungeon.findPath( this, target,
+					Dungeon.level.passable,
+					fieldOfView, true );
+			if (path != null)
+				step = path.removeFirst();
+			else
+				return false;
+		} else if (Dungeon.level.adjacent( pos, target )) {
 
 			path = null;
 
@@ -837,6 +849,18 @@ public abstract class Mob extends Char {
 				target = enemy.pos;
 			} else {
 				recentlyAttackedBy.add(enemy);
+			}
+		}
+
+		if (buff(WarpedEnemy.class) != null){
+			for (int i : PathFinder.NEIGHBOURS8){
+				int pos = this.pos + i;
+				CellEmitter.center(pos).burst(Speck.factory(Speck.WARPCLOUD), 6);
+				Char ch = Actor.findChar(pos);
+				if (ch != null){
+					ch.damage(damage / 3, new Warp());
+					Buff.affect(ch, Degrade.class, 8);
+				}
 			}
 		}
 

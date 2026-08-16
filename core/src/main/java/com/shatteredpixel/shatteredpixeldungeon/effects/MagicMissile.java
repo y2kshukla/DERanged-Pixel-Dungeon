@@ -21,6 +21,7 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.effects;
 
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.BloodParticle;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.CorrosionParticle;
@@ -32,6 +33,9 @@ import com.shatteredpixel.shatteredpixeldungeon.effects.particles.PurpleParticle
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.RainbowParticle;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.ShadowParticle;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.SparkParticle;
+import com.shatteredpixel.shatteredpixeldungeon.mechanics.Ballistica;
+import com.shatteredpixel.shatteredpixeldungeon.mechanics.ConeAOE;
+import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
 import com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
@@ -298,6 +302,31 @@ public class MagicMissile extends Emitter {
 			missile.reset(type, sprite, to, callback);
 		}
 		return missile;
+	}
+
+	public static ConeAOE arrangeBlast(int pos, CharSprite sprite, int type){
+		return arrangeBlast(pos, sprite, type, 1.5f);
+	}
+
+	public static ConeAOE arrangeBlast(int pos, CharSprite sprite, int type, float range) {
+		Ballistica aim;
+		if (pos % Dungeon.level.width() > 10){
+			aim = new Ballistica(pos, pos - 1, Ballistica.WONT_STOP);
+		} else {
+			aim = new Ballistica(pos, pos + 1, Ballistica.WONT_STOP);
+		}
+		ConeAOE aoe = new ConeAOE(aim, range, 360, Ballistica.FRIENDLY_PROJECTILE);
+		if (sprite.visible) {
+			for (Ballistica ray : aoe.rays) {
+				((MagicMissile) sprite.parent.recycle(MagicMissile.class)).reset(
+						type,
+						sprite,
+						ray.path.get(ray.dist),
+						null
+				);
+			}
+		}
+		return aoe;
 	}
 
 	@Override

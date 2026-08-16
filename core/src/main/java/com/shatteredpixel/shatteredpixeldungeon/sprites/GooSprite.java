@@ -24,7 +24,9 @@ package com.shatteredpixel.shatteredpixeldungeon.sprites;
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Goo;
 import com.shatteredpixel.shatteredpixeldungeon.effects.CellEmitter;
+import com.shatteredpixel.shatteredpixeldungeon.effects.MagicMissile;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.ElmoParticle;
 import com.shatteredpixel.shatteredpixeldungeon.mechanics.Ballistica;
 import com.watabou.noosa.TextureFilm;
@@ -32,6 +34,7 @@ import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.Emitter.Factory;
 import com.watabou.noosa.particles.PixelParticle;
+import com.watabou.utils.Callback;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
@@ -66,6 +69,8 @@ public class GooSprite extends MobSprite {
 
 		attack = new Animation( 10, false );
 		attack.frames( frames, 8, 9, 10 );
+
+		zap = attack.clone();
 		
 		die = new Animation( 10, false );
 		die.frames( frames, 5, 6, 7 );
@@ -151,6 +156,24 @@ public class GooSprite extends MobSprite {
 			spray.pos(center());
 			spray.visible = visible;
 		}
+	}
+
+	public void zap( int cell ) {
+
+		turnTo( ch.pos , cell );
+		play( zap );
+
+		MagicMissile.boltFromChar( parent,
+				MagicMissile.SHADOW_CONE,
+				this,
+				cell,
+				new Callback() {
+					@Override
+					public void call() {
+						((Goo)ch).onZapComplete();
+					}
+				} );
+		Sample.INSTANCE.play( Assets.Sounds.ZAP );
 	}
 
 	public static class GooParticle extends PixelParticle.Shrinking {

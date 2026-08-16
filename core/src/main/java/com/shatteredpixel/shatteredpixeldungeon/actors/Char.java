@@ -21,6 +21,8 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.actors;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Challenges;
@@ -89,6 +91,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ThunderImbue;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.TimedShrink;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vertigo;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vulnerable;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarpedEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarriorParry;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Weakness;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
@@ -200,8 +203,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
 
 public abstract class Char extends Actor {
 	
@@ -948,6 +949,9 @@ public abstract class Char extends Actor {
 		for (ChampionEnemy buff : buffs(ChampionEnemy.class)){
 			buff.onAttackProc( enemy );
 		}
+		if (buff(WarpedEnemy.class) != null){
+			Buff.affect(enemy, Weakness.class, 3);
+		}
 		return damage;
 	}
 	
@@ -1124,6 +1128,9 @@ public abstract class Char extends Actor {
         if (this.buff(BloomingPick.VineCovered.class) != null){
             damage *= 0.25f;
         }
+		if (this.buff(WarpedEnemy.class) != null){
+			damage *= 0.75f;
+		}
 
 		if (buff(Sickle.HarvestBleedTracker.class) != null){
 			buff(Sickle.HarvestBleedTracker.class).detach();
@@ -1296,6 +1303,10 @@ public abstract class Char extends Actor {
 				if (!isImmune(ScrollOfSirensSong.Enthralled.class)){
 					HP = HT;
 					AllyBuff.affectAndLoot((Mob) this, hero, ScrollOfSirensSong.Enthralled.class);
+				} else if (buff(WarpedEnemy.class) != null && Random.Int(3) == 0){
+					ScrollOfTeleportation.teleportChar(this);
+					HT /= 2;
+					HP = HT;
 				} else {
 					Buff.affect( this, Charm.class, Charm.DURATION ).object = hero.id();
 					die(src);
@@ -1410,6 +1421,9 @@ public abstract class Char extends Actor {
 		}
 		if (buff( Speed.class ) != null) {
 			timeScale *= 2.0f;
+		}
+		if (buff(WarpedEnemy.class) != null){
+			timeScale *= 1.25f;
 		}
 		
 		super.spend( time / timeScale );
