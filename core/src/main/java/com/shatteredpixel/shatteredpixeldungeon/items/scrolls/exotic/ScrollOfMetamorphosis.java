@@ -3,7 +3,7 @@
  * Copyright (C) 2012-2015 Oleg Dolya
  *
  * Shattered Pixel Dungeon
- * Copyright (C) 2014-2025 Evan Debenham
+ * Copyright (C) 2014-2026 Evan Debenham
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,8 +23,11 @@ package com.shatteredpixel.shatteredpixeldungeon.items.scrolls.exotic;
 
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
+import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.MysteryMerchant;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Transmuting;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.InventoryScroll;
@@ -33,6 +36,7 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
+import com.shatteredpixel.shatteredpixeldungeon.sprites.MysteryMerchantSprite;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.TalentButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.TalentsPane;
@@ -56,7 +60,8 @@ public class ScrollOfMetamorphosis extends ExoticScroll {
 	}
 
 	protected static boolean identifiedByUse = false;
-	
+    public static boolean merchant = false;
+
 	@Override
 	public void doRead() {
 		if (!isKnown()) {
@@ -66,20 +71,30 @@ public class ScrollOfMetamorphosis extends ExoticScroll {
 		} else {
 			identifiedByUse = false;
 		}
+        merchant = false;
 		GameScene.show(new WndMetamorphChoose());
 	}
 
 	public static void onMetamorph( Talent oldTalent, Talent newTalent ){
-		if (curItem instanceof ScrollOfMetamorphosis) {
+		if (!merchant && curItem instanceof ScrollOfMetamorphosis) {
 			((ScrollOfMetamorphosis) curItem).readAnimation();
 			Sample.INSTANCE.play(Assets.Sounds.READ);
 		}
-		curUser.sprite.emitter().start(Speck.factory(Speck.CHANGE), 0.2f, 10);
-		Transmuting.show(curUser, oldTalent, newTalent);
+		Dungeon.hero.sprite.emitter().start(Speck.factory(Speck.CHANGE), 0.2f, 10);
+		Transmuting.show(Dungeon.hero, oldTalent, newTalent);
 
 		if (Dungeon.hero.hasTalent(newTalent)) {
 			Talent.onTalentUpgraded(Dungeon.hero, newTalent);
 		}
+
+        if (merchant){
+            for (Char ch : Actor.chars()){
+                if (ch instanceof MysteryMerchant){
+                    ((MysteryMerchant) ch).yell( Messages.get(MysteryMerchant.class, "transmute_complete", oldTalent.title(), newTalent.title() ));
+                }
+            }
+			MysteryMerchant.Stats.handlePurchase();
+        }
 	}
 
 	private void confirmCancelation( Window chooseWindow, boolean byID ) {
@@ -118,7 +133,9 @@ public class ScrollOfMetamorphosis extends ExoticScroll {
 
 			float top = 0;
 
-			IconTitle title = new IconTitle( curItem );
+            IconTitle title = merchant ?
+                    new IconTitle( new MysteryMerchantSprite(), Messages.get(MysteryMerchant.class, "transmute_talent") ) :
+                    new IconTitle( curItem );
 			title.color( TITLE_COLOR );
 			title.setRect(0, 0, 120, 0);
 			add(title);
@@ -158,7 +175,7 @@ public class ScrollOfMetamorphosis extends ExoticScroll {
 		@Override
 		public void onBackPressed() {
 
-			if (identifiedByUse){
+			if (!merchant && identifiedByUse){
 				((ScrollOfMetamorphosis)curItem).confirmCancelation(this, true);
 			} else {
 				super.onBackPressed();
@@ -205,7 +222,7 @@ public class ScrollOfMetamorphosis extends ExoticScroll {
 		public WndMetamorphReplace(Talent replacing, int tier){
 			super();
 
-			if (!identifiedByUse && curItem instanceof ScrollOfMetamorphosis) {
+			if (!merchant && !identifiedByUse && curItem instanceof ScrollOfMetamorphosis) {
 				curItem.detach(curUser.belongings.backpack);
 			}
 			identifiedByUse = false;
@@ -251,7 +268,9 @@ public class ScrollOfMetamorphosis extends ExoticScroll {
 		private void setup(Talent replacing, int tier, LinkedHashMap<Talent, Integer> replaceOptions){
 			float top = 0;
 
-			IconTitle title = new IconTitle( curItem );
+			IconTitle title = merchant ?
+                    new IconTitle( new MysteryMerchantSprite(), Messages.get(MysteryMerchant.class, "transmute_talent") ) :
+                    new IconTitle( curItem );
 			title.color( TITLE_COLOR );
 			title.setRect(0, 0, 120, 0);
 			add(title);
@@ -285,7 +304,7 @@ public class ScrollOfMetamorphosis extends ExoticScroll {
 
 		@Override
 		public void onBackPressed() {
-			if (curItem instanceof ScrollOfMetamorphosis) {
+			if (!merchant && curItem instanceof ScrollOfMetamorphosis) {
 				((ScrollOfMetamorphosis) curItem).confirmCancelation(this, false);
 			} else {
 				super.onBackPressed();
