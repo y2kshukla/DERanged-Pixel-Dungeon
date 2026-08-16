@@ -73,6 +73,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.spells.PhaseShift;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.RapidGrowth;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.ReclaimTrap;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.Recycle;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.ScammingSpell;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.SummonElemental;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.TelekineticGrab;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.UnstableIdentification;
@@ -445,6 +446,7 @@ public class QuickRecipe extends Component {
 				result.add(new QuickRecipe(new FireImbueSpell.Recipe()));
 				result.add(new QuickRecipe(new ElectricityImbue.Recipe()));
 				result.add(new QuickRecipe(new UnstableIdentification.Recipe()));
+				result.add(new QuickRecipe(new ScammingSpell.Recipe()));
 				if (Dungeon.branch == AbyssLevel.BRANCH){
 					result.add(new QuickRecipe(new RedCrystal.StrengthRecipe()));
 				}
