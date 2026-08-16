@@ -29,26 +29,35 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Barrier;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Blindness;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ChampionEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Dread;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicalSleep;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Paralysis;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Sleep;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Terror;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarpedEnemy;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.spells.WallOfLight;
 import com.shatteredpixel.shatteredpixeldungeon.effects.CellEmitter;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.DriedRose;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.LloydsBeacon;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import com.shatteredpixel.shatteredpixeldungeon.levels.LabsBossLevel;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
+import com.shatteredpixel.shatteredpixeldungeon.mechanics.Ballistica;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.RebelSprite;
 import com.shatteredpixel.shatteredpixeldungeon.ui.BossHealthBar;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
+import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
+import com.watabou.utils.Reflection;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 
 public class Rebel extends Mob {
@@ -123,7 +132,15 @@ public class Rebel extends Mob {
 	public boolean isDied() {
 		return isDied;
 	}
-	
+
+	@Override
+	public HashSet<Property> properties() {
+		HashSet<Property> properties1 = super.properties();
+		if (buff(WarpedEnemy.BossEffect.class) != null)
+			properties1.add(Property.LARGE);
+		return properties1;
+	}
+
 	@Override
 	public int damageRoll() {
 		int dmg;
@@ -153,8 +170,12 @@ public class Rebel extends Mob {
 	
 	@Override
 	protected boolean canAttack( Char enemy ) {
+		if (buff(WarpedEnemy.BossEffect.class) != null)
+			return new Ballistica( pos, enemy.pos, Ballistica.PROJECTILE).collisionPos == pos;
 		return true;
 	}
+
+
 
 	@Override
 	public void notice() {
@@ -168,6 +189,52 @@ public class Rebel extends Mob {
 				}
 			}
 		}
+	}
+
+	@Override
+	public boolean canSee(int pos) {
+		if (buff(WarpedEnemy.BossEffect.class) != null && pos == Dungeon.hero.pos)
+			return true;
+		return super.canSee(pos);
+	}
+
+	@Override
+	public int defenseProc(Char enemy, int damage) {
+		if ( buff(WarpedEnemy.BossEffect.class) != null && Random.Float() < 1/5f ) {
+			ScrollOfTeleportation.teleportChar(this);
+
+			ArrayList<Integer> respawnPoints = new ArrayList<>();
+
+			for (int i = 0; i < PathFinder.NEIGHBOURS9.length; i++) {
+				int p = pos + PathFinder.NEIGHBOURS9[i];
+				if (Actor.findChar( p ) == null && Dungeon.level.passable[p]) {
+					respawnPoints.add( p );
+				}
+			}
+
+			int army = 3;
+			while (army > 0 && respawnPoints.size() > 0) {
+				int index = Random.index( respawnPoints );
+
+				Mob mob = Reflection.newInstance(Random.oneOf(Researcher.class, Soldier.class, Medic.class));
+				ChampionEnemy.rollWarp(mob);
+				GameScene.add( mob );
+				ScrollOfTeleportation.appear( mob, respawnPoints.get( index ) );
+
+				respawnPoints.remove( index );
+				army--;
+			}
+
+			return 0;
+		}
+		return super.defenseProc(enemy, damage);
+	}
+
+	@Override
+	public float speed() {
+		if (buff(WarpedEnemy.BossEffect.class) != null && !Dungeon.level.adjacent(Dungeon.hero.pos, pos))
+			return super.speed()*2;
+		return super.speed();
 	}
 
 	@Override
@@ -201,18 +268,24 @@ public class Rebel extends Mob {
 			Soldier soldier = new Soldier();
 			soldier.state = soldier.HUNTING;
 			soldier.pos = 3+16*33;
+			if (buff(WarpedEnemy.BossEffect.class) != null)
+				ChampionEnemy.rollWarp(soldier);
 			GameScene.add( soldier );
 			soldier.beckon(Dungeon.hero.pos);
 
 			Researcher researcher = new Researcher();
 			researcher.state = researcher.HUNTING;
 			researcher.pos = 29+16*33;
+			if (buff(WarpedEnemy.BossEffect.class) != null)
+				ChampionEnemy.rollWarp(researcher);
 			GameScene.add( researcher );
 			researcher.beckon(Dungeon.hero.pos);
 
 			Medic medic = new Medic();
 			medic.state = medic.HUNTING;
 			medic.pos = 16+3*33;
+			if (buff(WarpedEnemy.BossEffect.class) != null)
+				ChampionEnemy.rollWarp(medic);
 			GameScene.add( medic );
 			medic.beckon(Dungeon.hero.pos);
 			summonCooldown = (Dungeon.isChallenged(Challenges.STRONGER_BOSSES) ? 20 : 30);
@@ -240,6 +313,59 @@ public class Rebel extends Mob {
 			cleanCooldown = (Dungeon.isChallenged(Challenges.STRONGER_BOSSES)) ? 200 : 300;
 		}
 		return super.act();
+	}
+
+	@Override
+	protected boolean getCloser(int target) {
+		if (super.getCloser(target)){
+			return true;
+		} else {
+			if (buff(WarpedEnemy.BossEffect.class) == null || rooted || target == pos || Dungeon.level.adjacent(pos, target)){
+				return false;
+			}
+
+			int bestpos = pos;
+			for (int i : PathFinder.NEIGHBOURS8){
+				if (Actor.findChar(pos+i) == null &&
+						Dungeon.level.trueDistance(bestpos, target) > Dungeon.level.trueDistance(pos+i, target)){
+					bestpos = pos+i;
+				}
+			}
+
+			if (bestpos != pos){
+				Sample.INSTANCE.play( Assets.Sounds.ROCKS );
+
+				for (int i : PathFinder.NEIGHBOURS9){
+					if (Dungeon.level.map[pos+i] == Terrain.WALL || Dungeon.level.map[pos+i] == Terrain.WALL_DECO || Dungeon.level.map[i] == Terrain.BARRICADE){
+						Level.set(pos+i, Terrain.EMPTY_DECO);
+						GameScene.updateMap(pos+i);
+					}
+					if (Dungeon.level.blobs.get(WallOfLight.LightWall.class) != null){
+						Dungeon.level.blobs.get(WallOfLight.LightWall.class).clear(pos+i);
+					}
+				}
+				Dungeon.level.cleanWalls();
+				Dungeon.observe();
+				spend(1f);
+
+				bestpos = pos;
+				for (int i : PathFinder.NEIGHBOURS8){
+					if (Actor.findChar(pos+i) == null && Dungeon.level.openSpace[pos+i] &&
+							Dungeon.level.trueDistance(bestpos, target) > Dungeon.level.trueDistance(pos+i, target)){
+						bestpos = pos+i;
+					}
+				}
+
+				if (bestpos != pos) {
+					move(bestpos);
+				}
+				PixelScene.shake( 5, 1f );
+
+				return true;
+			}
+
+			return false;
+		}
 	}
 
 	private HashSet<Mob> getSubjects(){
@@ -279,7 +405,9 @@ public class Rebel extends Mob {
 
 	@Override
 	public void damage( int dmg, Object src ) {
-		if (dmg > 100) {
+		if (buff(WarpedEnemy.BossEffect.class) != null){
+			dmg = (int) (dmg * Math.pow(0.85, 7*((float)(HT - HP - dmg)/HT)));
+		} else if (dmg > 100) {
 			dmg = 100;
 		}
 		damageTaken += dmg;
