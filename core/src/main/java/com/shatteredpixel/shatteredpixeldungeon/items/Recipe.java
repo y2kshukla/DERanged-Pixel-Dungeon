@@ -64,6 +64,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.spells.IceMaker;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.KromerScroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.MagicalInfusion;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.PhaseShift;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.Pipisfusion;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.RapidGrowth;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.ReclaimTrap;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.Recycle;
@@ -252,7 +253,8 @@ public abstract class Recipe {
 		new ScammingSpell.Recipe(),
 		new KromerScroll.Recipe(),
 		new DoNotDieElixir.Recipe(),
-		new KromerPotion.Recipe()
+		new KromerPotion.Recipe(),
+		new Pipisfusion.Recipe()
 	};
 	
 	private static Recipe[] threeIngredientRecipes = new Recipe[]{

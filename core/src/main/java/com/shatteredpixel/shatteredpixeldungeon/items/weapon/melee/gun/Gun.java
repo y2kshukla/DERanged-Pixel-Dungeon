@@ -1,5 +1,7 @@
 package com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.gun;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
@@ -15,6 +17,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.InfiniteBullet;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Invisibility;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.RouletteOfDeath;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.SharpShooterBuff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Warp;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
@@ -40,8 +43,6 @@ import com.watabou.utils.Random;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
 
 public class Gun extends MeleeWeapon {
 	public static final String AC_SHOOT		= "SHOOT";
@@ -487,7 +488,10 @@ public class Gun extends MeleeWeapon {
 	}
 
 	public int bulletMin() {
-		return bulletMin(this.buffedLvl());
+		int dmg = bulletMin(this.buffedLvl());
+		if (trollers)
+			dmg *= 2;
+		return dmg;
 	}
 
 	//need to be overridden
@@ -505,7 +509,10 @@ public class Gun extends MeleeWeapon {
 	}
 
 	public int bulletMax() {
-		return bulletMax(this.buffedLvl());
+		int dmg = bulletMax(this.buffedLvl());
+		if (trollers)
+			dmg *= 2;
+		return dmg;
 	}
 
 	protected int bulletDamage() {
@@ -538,7 +545,7 @@ public class Gun extends MeleeWeapon {
 		//근접 무기의 설명을 모두 가져옴, 여기에서 할 것은 근접 무기의 설명에 추가로 생기는 문장을 더하는 것
 		if (levelKnown) { //감정되어 있을 때
 			info += "\n\n" + Messages.get(Gun.class, "gun_desc",
-					shotPerShoot(), augment.damageFactor(bulletMin(buffedLvl())), augment.damageFactor(bulletMax(buffedLvl())), round, maxRound(), new DecimalFormat("#.##").format(reloadTime(hero)), bulletUse());
+					shotPerShoot(), augment.damageFactor(bulletMin()), augment.damageFactor(bulletMax()), round, maxRound(), new DecimalFormat("#.##").format(reloadTime(hero)), bulletUse());
 		} else { //감정되어 있지 않을 때
 			info += "\n\n" + Messages.get(Gun.class, "gun_typical_desc",
 					shotPerShoot(), augment.damageFactor(bulletMin(0)), augment.damageFactor(bulletMax(0)), round, maxRound(), new DecimalFormat("#.##").format(reloadTime(hero)), bulletUse());
@@ -708,6 +715,8 @@ public class Gun extends MeleeWeapon {
 				multiplier = multiplier * (float) Math.pow(0.9f, distance);
 			}
 			damage = Math.round(damage * multiplier);
+			if (trollers)
+				Warp.inflict(10f, 1.33f);
 
 			if (hero.buff(Riot.RiotTracker.class) != null) {
 				if (hero.hasTalent(Talent.SHOT_CONCENTRATION)) {
