@@ -68,6 +68,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.spells.Evolution;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.FireImbueSpell;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.FireMaker;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.IceMaker;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.KromerScroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.MagicalInfusion;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.PhaseShift;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.RapidGrowth;
@@ -447,6 +448,7 @@ public class QuickRecipe extends Component {
 				result.add(new QuickRecipe(new ElectricityImbue.Recipe()));
 				result.add(new QuickRecipe(new UnstableIdentification.Recipe()));
 				result.add(new QuickRecipe(new ScammingSpell.Recipe()));
+				result.add(new QuickRecipe(new KromerScroll.Recipe()));
 				if (Dungeon.branch == AbyssLevel.BRANCH){
 					result.add(new QuickRecipe(new RedCrystal.StrengthRecipe()));
 				}

@@ -762,6 +762,7 @@ public class ItemSpriteSheet {
 	public static final int RUNIC_CLUMP= QUEST+10;
 	public static final int RED_CRYSTAL= QUEST+11;
 	public static final int KROMER     = QUEST+13;
+	public static final int EXOTIC_KROMER = QUEST+14;
 	static{
 		assignItemRect(DUST,    12, 11);
 		assignItemRect(CANDLE,  12, 12);
@@ -775,6 +776,7 @@ public class ItemSpriteSheet {
 		assignItemRect(RUNIC_CLUMP, 12, 11);
 		assignItemRect(RED_CRYSTAL, 10, 15);
 		assignItemRect(KROMER, 16, 16);
+		assignItemRect(EXOTIC_KROMER, 15, 14);
 	}
 
 	private static final int BAGS       =                                   xy(1, 31);  //16 slots

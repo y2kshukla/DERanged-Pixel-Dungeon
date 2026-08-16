@@ -59,6 +59,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.spells.Evolution;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.FireImbueSpell;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.FireMaker;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.IceMaker;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.KromerScroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.MagicalInfusion;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.PhaseShift;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.RapidGrowth;
@@ -246,7 +247,8 @@ public abstract class Recipe {
 		new ElixirOfTalent.Recipe(),
 		new UpgradeDust.Recipe(),
 		new UnstableIdentification.Recipe(),
-		new ScammingSpell.Recipe()
+		new ScammingSpell.Recipe(),
+		new KromerScroll.Recipe()
 	};
 	
 	private static Recipe[] threeIngredientRecipes = new Recipe[]{
