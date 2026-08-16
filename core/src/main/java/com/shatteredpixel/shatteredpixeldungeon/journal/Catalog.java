@@ -87,6 +87,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.CausticBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.InfernalBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.ShockingBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.UnstableBrew;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.DoNotDieElixir;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfAquaticRejuvenation;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfArcaneArmor;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfDragonsBlood;
@@ -96,6 +97,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfIc
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfMight;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfTalent;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfToxicEssence;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.KromerPotion;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.ExoticPotion;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.CeremonialCandle;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.Chaosstone;
@@ -104,6 +106,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.quest.DarkGold;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.DwarfToken;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.Embers;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.GooBlob;
+import com.shatteredpixel.shatteredpixeldungeon.items.quest.Kromer;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.MetalShard;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.RedCrystal;
 import com.shatteredpixel.shatteredpixeldungeon.items.remains.BowFragment;
@@ -127,11 +130,14 @@ import com.shatteredpixel.shatteredpixeldungeon.items.spells.Evolution;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.FireImbueSpell;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.FireMaker;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.IceMaker;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.KromerScroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.MagicalInfusion;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.PhaseShift;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.Pipisfusion;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.RapidGrowth;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.ReclaimTrap;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.Recycle;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.ScammingSpell;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.SummonElemental;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.TelekineticGrab;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.UnstableIdentification;
@@ -303,13 +309,14 @@ public enum Catalog {
 				ShockingBrew.class, CausticBrew.class, AquaBrew.class, ElixirOfHoneyedHealing.class,
 				ElixirOfAquaticRejuvenation.class, ElixirOfArcaneArmor.class, ElixirOfDragonsBlood.class,
 				ElixirOfIcyTouch.class, ElixirOfToxicEssence.class, ElixirOfMight.class, ElixirOfFeatherFall.class,
-				ElixirOfTalent.class);
+				ElixirOfTalent.class, DoNotDieElixir.class, KromerPotion.class);
 
 		SPELLS.addItems( UnstableSpell.class, WildEnergy.class, TelekineticGrab.class, PhaseShift.class,
 				Alchemize.class, CurseInfusion.class, MagicalInfusion.class, Recycle.class,
 				ReclaimTrap.class, SummonElemental.class, BeaconOfReturning.class,
 				Evolution.class, RapidGrowth.class, IceMaker.class, FireMaker.class, Xray.class,
-				FireImbueSpell.class, ElectricityImbue.class, UnstableIdentification.class, BluePrint.class);
+				FireImbueSpell.class, ElectricityImbue.class, UnstableIdentification.class, BluePrint.class,
+				ScammingSpell.class, Pipisfusion.class, KromerScroll.class);
 
 		MISC_CONSUMABLES.addItems( Gold.class, EnergyCrystal.class, Dewdrop.class,
 				IronKey.class, GoldenKey.class, CrystalKey.class, SkeletonKey.class,
@@ -320,7 +327,7 @@ public enum Catalog {
 				SealShard.class, BrokenStaff.class, CloakScrap.class, BowFragment.class, BrokenHilt.class, TornPage.class,
 				SpareMagazine.class, SheathFragment.class, HoledPouch.class, BrokenShield.class, ShatteredPillbox.class, CrownShard.class,
 				Rope.class, GunSmithingTool.class, BulletBelt.class,
-				Chaosstone.class, AbyssalSpawner.Clump.class, RedCrystal.class);
+				Chaosstone.class, AbyssalSpawner.Clump.class, RedCrystal.class, Kromer.class);
 
 	}
 
