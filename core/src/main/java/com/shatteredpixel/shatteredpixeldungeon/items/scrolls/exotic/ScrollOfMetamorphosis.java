@@ -236,6 +236,8 @@ public class ScrollOfMetamorphosis extends ExoticScroll {
 			Set<Talent> curTalentsAtTier = Dungeon.hero.talents.get(tier-1).keySet();
 
 			for (HeroClass cls : HeroClass.values()){
+				if (cls == HeroClass.RAT_KING && Random.Int(3) > 0)
+					continue;
 
 				ArrayList<LinkedHashMap<Talent, Integer>> clsTalents = new ArrayList<>();
 				Talent.initClassTalents(cls, clsTalents);
