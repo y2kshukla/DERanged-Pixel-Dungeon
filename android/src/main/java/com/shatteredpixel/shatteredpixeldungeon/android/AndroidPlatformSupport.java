@@ -30,6 +30,7 @@ import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.view.View;
 import android.view.WindowManager;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.android.AndroidGraphics;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -40,15 +41,23 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.watabou.noosa.Game;
 import com.watabou.utils.PlatformSupport;
 import com.zrp200.scrollofdebug.PackageTrie;
-import dalvik.system.DexFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import dalvik.system.DexFile;
+
 public class AndroidPlatformSupport extends PlatformSupport {
+
+	static ArrayList<String> trieExceptions = new ArrayList<>();
+
+	static {
+		trieExceptions.add("com.shatteredpixel.shatteredpixeldungeon.android.AndroidLauncher$1");
+	}
 
 	@Override
 	public PackageTrie findClasses(String pkgName) throws ClassNotFoundException {
@@ -61,7 +70,7 @@ public class AndroidPlatformSupport extends PlatformSupport {
 					).entries();
 					String n; while(entries.hasMoreElements()) {
 						n = entries.nextElement();
-						if(n.contains(pkgName)) try {
+						if(n.contains(pkgName) && !trieExceptions.contains(n)) try {
 							addClass(Class.forName(n), pkgName);
 						} catch (Exception e) {
 							e.printStackTrace();
