@@ -189,6 +189,6 @@ public class Kromer extends Item {
 
     @Override
     public int value() {
-        return quantity * Random.Int(1, 672);
+        return quantity * Random.Int(1, 336);
     }
 }
