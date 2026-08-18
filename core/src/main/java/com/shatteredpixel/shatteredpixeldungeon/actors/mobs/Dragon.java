@@ -280,7 +280,7 @@ public class Dragon extends AbyssalMob {
             viewDistance = Light.DISTANCE;
 
             EXP = 5;
-            maxLvl = -2;
+            maxLvl = -4;
 
             properties.add(Property.DEMONIC);
             properties.add(Property.FIERY);

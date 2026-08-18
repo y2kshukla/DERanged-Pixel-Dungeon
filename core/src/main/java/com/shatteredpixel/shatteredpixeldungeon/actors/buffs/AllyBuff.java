@@ -72,7 +72,7 @@ public abstract class AllyBuff extends Buff {
 
 			AscensionChallenge.processEnemyKill(enemy);
 
-			int exp = hero.lvl <= enemy.maxLvl ? enemy.EXP : 0;
+			int exp = hero.lvl <= enemy.maxLvl + 2 ? enemy.EXP : 0;
 			if (exp > 0) {
 				if (Dungeon.isSpecialSeedEnabled(DungeonSeed.SpecialSeed.LEVELLING_DOWN))
 					hero.sprite.showStatusWithIcon(CharSprite.NEGATIVE, Integer.toString(exp), FloatingText.EXPERIENCE);
