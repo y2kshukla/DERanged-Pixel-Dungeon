@@ -70,8 +70,8 @@ public class WarpPile {
     }
 
     public static float getMaxWarp() {
-//        if (Dungeon.isSpecialSeedEnabled(DungeonSeed.SpecialSeed.NO_WARP))
-//            return 1;
+        if (Dungeon.isSpecialSeedEnabled(DungeonSeed.SpecialSeed.NO_WARP))
+            return 1;
         return MAX_WARP;
     }
 
