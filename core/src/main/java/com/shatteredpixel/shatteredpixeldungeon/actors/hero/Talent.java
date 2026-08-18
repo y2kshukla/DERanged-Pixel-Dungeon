@@ -3033,6 +3033,8 @@ public enum Talent {
 						return new Talent[]{STRONG_NEXUS, TARGET_SET};
 					case ARCHER:
 						return new Talent[]{MAKESHIFT_BOW, FOLLOWUP_SHOOT};
+					case RAT_KING:
+						return new Talent[]{};
 				}
 		}
 		return new Talent[]{};
