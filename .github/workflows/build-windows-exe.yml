@@ -12,8 +12,8 @@ name: Build Windows EXE
 #
 # Before anything is published, the packaged build is checked on the runner:
 # the bundled runtime must contain every Java module the game needs, and the
-# game must boot far enough to initialize (only the OpenGL context can fail on
-# a CI machine, which has no real GPU).
+# game must boot with that runtime (only the OpenGL context can fail on a CI
+# machine, which has no real GPU).
 
 on:
   push:
@@ -28,10 +28,12 @@ permissions:
 env:
   APP_NAME: DERanged Pixel Dungeon
   MAIN_CLASS: com.shatteredpixel.shatteredpixeldungeon.desktop.DesktopLauncher
-  # java.desktop/java.management are needed by the desktop launcher and libGDX,
-  # jdk.unsupported by libGDX/LWJGL, and the crypto modules by HTTPS (used for
-  # update/news checks). Same list as the 'runtime' block in desktop/build.gradle.
-  JRE_MODULES: java.base,java.desktop,java.logging,java.management,jdk.management,jdk.unsupported,jdk.crypto.cryptoki,jdk.crypto.ec,jdk.zipfs
+  # Modules the game needs that jdeps cannot see, because they are used
+  # reflectively or through service loaders: java.desktop and java.management
+  # are used by libGDX and the desktop launcher, jdk.unsupported by libGDX/LWJGL,
+  # the crypto modules by HTTPS (update/news checks), jdk.zipfs by save file
+  # handling. jdeps adds everything else it finds to this list at build time.
+  BASE_JRE_MODULES: java.base,java.desktop,java.logging,java.management,jdk.management,jdk.unsupported,jdk.crypto.cryptoki,jdk.crypto.ec,jdk.zipfs
 
 jobs:
   windows-exe:
@@ -58,7 +60,7 @@ jobs:
         run: |
           ./gradlew --settings-file settings-desktop.gradle :desktop:release --stacktrace 2>&1 | tee build-log.txt
 
-      - name: Read build version
+      - name: Read build version and required modules
         shell: bash
         run: |
           JAR_PATH=$(ls desktop/build/libs/*.jar 2>/dev/null | grep -v -E 'sources|javadoc' | head -n1)
@@ -72,10 +74,22 @@ jobs:
           FULL_VERSION=${FULL_VERSION%.jar}
           # jpackage needs a plain x.y.z version string
           SHORT_VERSION=$(echo "$FULL_VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
+
+          echo "--- Java modules the game needs (jdeps) ---" | tee -a build-log.txt
+          jdeps --print-module-deps --ignore-missing-deps --multi-release 17 \
+            "$JAR_PATH" 2>> build-log.txt | tr -d '\r' > needed-modules.txt || true
+          cat needed-modules.txt | tee -a build-log.txt
+
+          # Always include the base list above, then whatever jdeps found.
+          JRE_MODULES=$( { echo "$BASE_JRE_MODULES" | tr ',' '\n'; tr -d '\\\r\n ' < needed-modules.txt | tr ',' '\n'; } \
+            | tr -d ' ' | grep -v '^$' | sort -u | paste -sd, - )
+          echo "runtime module set: $JRE_MODULES" | tee -a build-log.txt
+
           {
             echo "JAR_NAME=$JAR_NAME"
             echo "FULL_VERSION=$FULL_VERSION"
             echo "SHORT_VERSION=$SHORT_VERSION"
+            echo "JRE_MODULES=$JRE_MODULES"
           } >> "$GITHUB_ENV"
           echo "Built $JAR_NAME (app version $SHORT_VERSION)"
 
@@ -90,7 +104,7 @@ jobs:
             --strip-debug --no-header-files --no-man-pages --compress=2 \
             --output build/jre 2>&1 | tee -a build-log.txt
           echo "--- bundled runtime modules ---" | tee -a build-log.txt
-          "build/jre/bin/java" --list-modules | tee -a build-log.txt
+          "build/jre/bin/java" --list-modules | tr -d '\r' | tee -a build-log.txt
           du -sh build/jre | tee -a build-log.txt
 
       - name: Package portable app (jpackage app-image)
@@ -161,12 +175,12 @@ jobs:
             --input desktop/build/libs \
             --main-jar "$JAR_NAME" \
             --main-class "$MAIN_CLASS" \
+            --runtime-image build/jre \
             --name "$APP_NAME" \
             --app-version "$SHORT_VERSION" \
             --vendor "DERanged Pixel Dungeon" \
             --description "DERanged Pixel Dungeon - a Shattered Pixel Dungeon mod" \
             --icon desktop/src/main/assets/icons/windows.ico \
-            --runtime-image build/jre \
             --dest dist \
             --java-options "-XX:+IgnoreUnrecognizedVMOptions" \
             --win-shortcut --win-menu --win-dir-chooser \
@@ -189,25 +203,23 @@ jobs:
           test -f "$APP_DIR/app/$JAR_NAME" || { echo "::error::game jar is missing from the app image"; exit 1; }
 
           echo "--- bundled runtime ---" | tee -a build-log.txt
-          grep -E "^(JAVA_VERSION|MODULES)=" "$APP_DIR/runtime/release" | tee -a build-log.txt
+          grep -E "^(JAVA_VERSION|MODULES)=" "$APP_DIR/runtime/release" | cut -c1-200 | tee -a build-log.txt
 
           echo "--- checking that every module the game needs is bundled ---" | tee -a build-log.txt
-          jdeps --print-module-deps --ignore-missing-deps --multi-release 17 \
-            "desktop/build/libs/$JAR_NAME" > needed-modules.txt 2>> build-log.txt || true
-          cat needed-modules.txt | tee -a build-log.txt
-          AVAILABLE_MODULES=$("$APP_DIR/runtime/bin/java" --list-modules | cut -d@ -f1)
-          NEEDED_MODULES=$(tr -d '\\\n ' < needed-modules.txt | tr ',' ' ')
+          AVAILABLE_MODULES=$("$APP_DIR/runtime/bin/java" --list-modules | tr -d '\r' | cut -d@ -f1)
+          NEEDED_MODULES=$(tr -d '\\\r\n ' < needed-modules.txt | tr ',' ' ')
           for module in $NEEDED_MODULES; do
             if ! echo "$AVAILABLE_MODULES" | grep -qx "$module"; then
               echo "::error::the bundled runtime is missing the Java module '$module'"
               exit 1
             fi
           done
+          echo "all $NEEDED_MODULES present" | tee -a build-log.txt
 
           # Boot the game with the bundled runtime. There is no real GPU on a CI
-          # machine, so failing to create an OpenGL context (or simply still
-          # running when the timeout hits) is a pass: it means the JVM, the
-          # runtime, and the game jar all loaded.
+          # machine, so an OpenGL failure (or simply still running when the
+          # timeout hits) is a pass: it means the runtime, the game jar, and the
+          # game's assets all loaded fine.
           echo "--- boot test ---" | tee -a build-log.txt
           set +e
           export MSYS2_ARG_CONV_EXCL="*"
@@ -218,7 +230,7 @@ jobs:
           cat boot-test.txt | tee -a build-log.txt
           echo "boot test exit code: $BOOT_RESULT" | tee -a build-log.txt
 
-          if grep -qE "NoClassDefFoundError|ClassNotFoundException|UnsupportedClassVersionError|ExceptionInInitializerError|NoSuchMethodError|Could not find or load main class|Unable to load|module not found|java.lang.module" boot-test.txt; then
+          if grep -qE "NoClassDefFoundError|ClassNotFoundException|UnsupportedClassVersionError|ExceptionInInitializerError|NoSuchMethodError|Could not find or load main class|Unable to load library|module not found|java.lang.module" boot-test.txt; then
             echo "::error::the packaged game could not start up (see the log above)"
             exit 1
           fi
@@ -262,7 +274,7 @@ jobs:
             first time you launch the game. Choose "More info" -> "Run anyway".
           * Saves are stored in \`%APPDATA%\\.trashboxbobylev\\$APP_NAME\`.
           * Built automatically from source by the "Build Windows EXE" workflow, from commit
-            $GITHUB_SHA, and automatically tested on Windows before being published here.
+            $GITHUB_SHA. The packaged game is boot-tested on Windows before being published here.
 
           This game is free software licensed under the GPLv3.
           EOF
