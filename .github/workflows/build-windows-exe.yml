@@ -4,11 +4,16 @@ name: Build Windows EXE
 # release, so that anyone can download and play it without installing Java:
 #
 #   * DERangedPixelDungeon-<version>-Windows-x64.exe ... one-file installer
-#   * DERangedPixelDungeon-<version>-Windows-x64.zip ... portable (unzip + run)
+#   * DERangedPixelDungeon-<version>-Windows-x64-portable.zip ... unzip + run
 #
 # Both are self-contained: the game plus a trimmed Java runtime are bundled
 # inside. A Windows runner is required because jpackage can only create an
 # executable for the operating system it runs on.
+#
+# Before anything is published, the packaged build is checked on the runner:
+# the bundled runtime must contain every Java module the game needs, and the
+# game must boot far enough to initialize (only the OpenGL context can fail on
+# a CI machine, which has no real GPU).
 
 on:
   push:
@@ -24,9 +29,8 @@ env:
   APP_NAME: DERanged Pixel Dungeon
   MAIN_CLASS: com.shatteredpixel.shatteredpixeldungeon.desktop.DesktopLauncher
   # java.desktop/java.management are needed by the desktop launcher and libGDX,
-  # jdk.unsupported by libGDX/LWJGL, and the crypto modules by HTTPS
-  # (used for update/news checks). See upstream desktop/build.gradle for the origin
-  # of this list.
+  # jdk.unsupported by libGDX/LWJGL, and the crypto modules by HTTPS (used for
+  # update/news checks). Same list as the 'runtime' block in desktop/build.gradle.
   JRE_MODULES: java.base,java.desktop,java.logging,java.management,jdk.management,jdk.unsupported,jdk.crypto.cryptoki,jdk.crypto.ec,jdk.zipfs
 
 jobs:
@@ -36,16 +40,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
 
       # The desktop module only needs the core/SPD-classes/services modules, so
       # we use settings-desktop.gradle and skip configuring android + ios.
@@ -55,19 +59,24 @@ jobs:
           ./gradlew --settings-file settings-desktop.gradle :desktop:release --stacktrace 2>&1 | tee build-log.txt
 
       - name: Read build version
-        id: version
         shell: bash
         run: |
-          JAR_PATH=$(ls desktop/build/libs/*.jar | grep -v -E 'sources|javadoc' | head -n1)
+          JAR_PATH=$(ls desktop/build/libs/*.jar 2>/dev/null | grep -v -E 'sources|javadoc' | head -n1)
+          if [ -z "$JAR_PATH" ]; then
+            echo "::error::desktop:release did not produce a jar"
+            exit 1
+          fi
           JAR_NAME=$(basename "$JAR_PATH")
           # desktop-1.2.0_based_on_3.39.0.jar -> 1.2.0_based_on_3.39.0
           FULL_VERSION=${JAR_NAME#desktop-}
           FULL_VERSION=${FULL_VERSION%.jar}
           # jpackage needs a plain x.y.z version string
           SHORT_VERSION=$(echo "$FULL_VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
-          echo "JAR_NAME=$JAR_NAME" >> "$GITHUB_ENV"
-          echo "FULL_VERSION=$FULL_VERSION" >> "$GITHUB_ENV"
-          echo "SHORT_VERSION=$SHORT_VERSION" >> "$GITHUB_ENV"
+          {
+            echo "JAR_NAME=$JAR_NAME"
+            echo "FULL_VERSION=$FULL_VERSION"
+            echo "SHORT_VERSION=$SHORT_VERSION"
+          } >> "$GITHUB_ENV"
           echo "Built $JAR_NAME (app version $SHORT_VERSION)"
 
       - name: Package portable app (jpackage app-image)
@@ -86,7 +95,7 @@ jobs:
             --dest dist \
             --add-modules "$JRE_MODULES" \
             --java-options "-XX:+IgnoreUnrecognizedVMOptions" 2>&1 | tee -a build-log.txt
-          ls -la "dist/$APP_NAME"
+          find "dist/$APP_NAME" -maxdepth 2 | sed -n '1,20p'
 
       - name: Add readme and zip the portable build
         shell: pwsh
@@ -119,8 +128,8 @@ jobs:
           Compress-Archive -Path $appDir -DestinationPath "dist/DERangedPixelDungeon-$env:SHORT_VERSION-Windows-x64-portable.zip" -CompressionLevel Optimal -Force
           Get-ChildItem dist
 
-      # Optional: a single-file .exe installer. Needs WiX (installed on the
-      # runner image); if it isn't usable the portable zip is still published.
+      # Optional: a single-file .exe installer. Needs WiX (present on the runner
+      # image); if it isn't usable the portable zip is still published.
       - name: Package single-file installer (WiX)
         id: installer
         continue-on-error: true
@@ -130,7 +139,7 @@ jobs:
             WIX_BIN=$(find "/c/Program Files (x86)" "/c/Program Files" -maxdepth 3 -iname "light.exe" 2>/dev/null | head -n1)
             if [ -n "$WIX_BIN" ]; then
               export PATH="$(dirname "$WIX_BIN"):$PATH"
-              echo "Found WiX at $WIX_BIN" | tee -a build-log.txt
+              echo "Using WiX from $(dirname "$WIX_BIN")" | tee -a build-log.txt
             fi
           fi
           jpackage \
@@ -151,8 +160,59 @@ jobs:
           mv "dist/$APP_NAME-$SHORT_VERSION.exe" "dist/DERangedPixelDungeon-$SHORT_VERSION-Windows-x64.exe"
           ls -la dist
 
+      # Make sure the packaged build is actually usable before publishing it.
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -e
+          APP_DIR="dist/$APP_NAME"
+          echo "--- app image contents ---" | tee -a build-log.txt
+          ls -la "$APP_DIR" | tee -a build-log.txt
+
+          test -f "$APP_DIR/$APP_NAME.exe" || { echo "::error::portable launcher .exe is missing"; exit 1; }
+          test -d "$APP_DIR/runtime"       || { echo "::error::bundled runtime is missing"; exit 1; }
+          test -f "$APP_DIR/runtime/bin/java.exe" || { echo "::error::bundled runtime has no java.exe"; exit 1; }
+          test -f "$APP_DIR/app/$JAR_NAME" || { echo "::error::game jar is missing from the app image"; exit 1; }
+
+          echo "--- bundled runtime ---" | tee -a build-log.txt
+          grep -E "^(JAVA_VERSION|MODULES)=" "$APP_DIR/runtime/release" | tee -a build-log.txt
+
+          echo "--- checking that every module the game needs is bundled ---" | tee -a build-log.txt
+          jdeps --print-module-deps --ignore-missing-deps --multi-release 17 \
+            "desktop/build/libs/$JAR_NAME" > needed-modules.txt 2>> build-log.txt || true
+          cat needed-modules.txt | tee -a build-log.txt
+          AVAILABLE_MODULES=$("$APP_DIR/runtime/bin/java" --list-modules | cut -d@ -f1)
+          NEEDED_MODULES=$(tr -d '\\\n ' < needed-modules.txt | tr ',' ' ')
+          for module in $NEEDED_MODULES; do
+            if ! echo "$AVAILABLE_MODULES" | grep -qx "$module"; then
+              echo "::error::the bundled runtime is missing the Java module '$module'"
+              exit 1
+            fi
+          done
+
+          # Boot the game with the bundled runtime. There is no real GPU on a CI
+          # machine, so failing to create an OpenGL context (or simply still
+          # running when the timeout hits) is a pass: it means the JVM, the
+          # runtime, and the game jar all loaded.
+          echo "--- boot test ---" | tee -a build-log.txt
+          set +e
+          export MSYS2_ARG_CONV_EXCL="*"
+          timeout 75 "$APP_DIR/runtime/bin/java" -XX:+IgnoreUnrecognizedVMOptions \
+            -cp "dist/$APP_NAME/app/$JAR_NAME" "$MAIN_CLASS" > boot-test.txt 2>&1
+          BOOT_RESULT=$?
+          set -e
+          cat boot-test.txt | tee -a build-log.txt
+          echo "boot test exit code: $BOOT_RESULT" | tee -a build-log.txt
+
+          if grep -qE "NoClassDefFoundError|ClassNotFoundException|UnsupportedClassVersionError|ExceptionInInitializerError|NoSuchMethodError|Could not find or load main class|Unable to load|module not found|java.lang.module" boot-test.txt; then
+            echo "::error::the packaged game could not start up (see the log above)"
+            exit 1
+          fi
+
+          echo "Package looks good: $APP_NAME $FULL_VERSION" | tee -a build-log.txt
+
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: DERangedPixelDungeon-${{ env.SHORT_VERSION }}-Windows-x64
@@ -170,27 +230,27 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="windows-exe-$SHORT_VERSION"
-          TITLE="Windows build $SHORT_VERSION (portable .exe)"
+          TITLE="Windows build $SHORT_VERSION"
           NOTES=$(cat <<EOF
           Standalone Windows build of **$APP_NAME $FULL_VERSION**.
 
           Download one of these:
-          * \`DERangedPixelDungeon-$SHORT_VERSION-Windows-x64.exe\` - installer: run it, then launch the
+          * \`DERangedPixelDungeon-$SHORT_VERSION-Windows-x64.exe\` - installer: run it, then start the
             game from the Start menu or the desktop shortcut.
           * \`DERangedPixelDungeon-$SHORT_VERSION-Windows-x64-portable.zip\` - no installation: unzip the
             folder anywhere and double-click "$APP_NAME.exe".
 
-          Java is **not** required, a Java runtime is bundled with the game.
+          Java is **not** required, a Java runtime is bundled with the game, and Windows will
+          pick the right one for you (64-bit).
 
           ### Notes
-          * The build is not code-signed, so Windows SmartScreen may show
-            "Windows protected your PC" the first time you launch the game.
-            Choose "More info" -> "Run anyway".
+          * Not code-signed, so Windows SmartScreen may show "Windows protected your PC" the
+            first time you launch the game. Choose "More info" -> "Run anyway".
           * Saves are stored in \`%APPDATA%\\.trashboxbobylev\\$APP_NAME\`.
-          * Built automatically by the \`Build Windows EXE\` workflow from commit $GITHUB_SHA.
+          * Built automatically from source by the "Build Windows EXE" workflow, from commit
+            $GITHUB_SHA, and automatically tested on Windows before being published here.
 
-          This game is free software licensed under the GPLv3, and is built from source with
-          [jpackage](https://dev.java/learn/jpackage/).
+          This game is free software licensed under the GPLv3.
           EOF
           )
 
@@ -200,16 +260,16 @@ jobs:
 
           FILES=$(ls dist/*.exe dist/*.zip 2>/dev/null)
           if [ -z "$FILES" ]; then
-            echo "No distributable files were produced, nothing to upload."
+            echo "::error::no distributable files were produced"
             exit 1
           fi
           gh release upload "$TAG" $FILES --clobber
           echo "Released $TAG:"
-          gh release view "$TAG" --json assets --jq '.assets[] | "\(.name) - \(.size) bytes\n\(.url)"'
+          gh release view "$TAG" --json assets --jq '.assets[] | "\(.name) (\(.size) bytes)\n\(.url)"'
 
-      # GitHub's actions API doesn't allow us to read logs from this sandbox, so
-      # dump the tail of the build log into a commit comment if anything failed.
-      - name: Save build log on failure
+      # The GitHub API blocks log downloads from the sandbox this repo is
+      # maintained in, so dump the tail of the build log into a commit comment.
+      - name: Post build log on failure
         if: failure()
         shell: bash
         env:
