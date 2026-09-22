@@ -282,6 +282,9 @@ jobs:
 
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" --title "$TITLE" --notes "$NOTES" --target "$GITHUB_SHA" --latest=false
+          else
+            # keep the notes of a re-run up to date
+            gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --latest=false
           fi
 
           FILES=$(ls dist/*.exe dist/*.zip 2>/dev/null)
