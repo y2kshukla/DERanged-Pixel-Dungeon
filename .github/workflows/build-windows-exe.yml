@@ -304,11 +304,15 @@ jobs:
               return 1
             fi
             echo "boot test '$name' succeeded: $(grep -m1 'OpenGL renderer:' "$log")" | tee -a build-log.txt
+            grep -m1 'Window created' "$log" >> verification-report.txt
             return 0
           }
 
           boot_test normal
           boot_test software -Dderanged.glMode=software
+
+          echo "--- verification report ---" | tee -a build-log.txt
+          cat verification-report.txt | tee -a build-log.txt
 
           echo "Package looks good: $APP_NAME $FULL_VERSION" | tee -a build-log.txt
 
@@ -359,6 +363,13 @@ jobs:
           * Built automatically from source by the "Build Windows EXE" workflow, from commit
             $GITHUB_SHA. Both the graphics driver path and the software renderer path are
             boot-tested on Windows before being published here.
+
+          ### Verified before publishing
+          The packaged game was started on a Windows build machine (which has no graphics card)
+          and reported the following:
+          \`\`\`
+          $(cat verification-report.txt 2>/dev/null || echo "no report was produced")
+          \`\`\`
 
           This game is free software licensed under the GPLv3.
           EOF
