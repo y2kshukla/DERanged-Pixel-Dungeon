@@ -7,6 +7,25 @@ ReARranged game fully supports Korean language basically. This game's content do
 
 Started community-based translation on [Transifex](https://explore.transifex.com/rearranged-pixel-dungeon/rearranged-pixel-dungeon/), please consider joining translation work if you are interested.
 
+## Download (Windows)
+Ready-to-play, self-contained Windows builds of this fork are built and tested automatically by the
+[Build Windows EXE](.github/workflows/build-windows-exe.yml) workflow and published to the
+[**Windows build release**](https://github.com/y2kshukla/DERanged-Pixel-Dungeon/releases/tag/windows-exe-1.2.0).
+Java does not need to be installed, it is bundled with the game:
+
+* **Installer:** [DERangedPixelDungeon-1.2.0-Windows-x64.exe](https://github.com/y2kshukla/DERanged-Pixel-Dungeon/releases/download/windows-exe-1.2.0/DERangedPixelDungeon-1.2.0-Windows-x64.exe)
+  - run it, then start the game from the Start menu or the desktop shortcut.
+* **Portable:** [DERangedPixelDungeon-1.2.0-Windows-x64-portable.zip](https://github.com/y2kshukla/DERanged-Pixel-Dungeon/releases/download/windows-exe-1.2.0/DERangedPixelDungeon-1.2.0-Windows-x64-portable.zip)
+  - unzip it anywhere and run `DERanged Pixel Dungeon.exe`. Keep the folder together.
+
+No graphics card is needed: if your computer cannot provide a modern OpenGL context (virtual machines,
+remote desktop sessions, and machines without a graphics driver only offer the ancient OpenGL 1.1
+driver that is built into Windows), the game says so and restarts itself on the software renderer it
+carries, which draws everything on the CPU instead of a graphics card.
+
+The builds are not code-signed, so Windows SmartScreen may warn you the first time you start the game
+("More info" -> "Run anyway"). Saves are stored in `%APPDATA%\.trashboxbobylev\DERanged Pixel Dungeon`.
+
 ## What is added on top of ReARranged?
 - Playable Rat King omniclass, with all ReARranged classes added to it for a ton of effects and 36 subclass talents!
 - The Abyss, the endless zone from my mods, with all cracked enemies and chaosstones to collect. Earn as many as you can!

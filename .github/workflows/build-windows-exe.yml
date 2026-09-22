@@ -1,0 +1,411 @@
+name: Build Windows EXE
+
+# Builds a standalone Windows version of the game and publishes it to a GitHub
+# release, so that anyone can download and play it without installing Java:
+#
+#   * DERangedPixelDungeon-<version>-Windows-x64.exe ... one-file installer
+#   * DERangedPixelDungeon-<version>-Windows-x64-portable.zip ... unzip + run
+#
+# Both are self-contained: the game plus a trimmed Java runtime are bundled
+# inside. A Windows runner is required because jpackage can only create an
+# executable for the operating system it runs on.
+#
+# The game also carries a software renderer (Mesa's llvmpipe, downloaded below),
+# which it falls back to automatically when a computer cannot provide a modern
+# OpenGL context, e.g. virtual machines, remote sessions and machines without a
+# graphics card. Before anything is published, both paths are tested on the
+# runner: the game must actually get as far as creating its window.
+
+on:
+  push:
+    branches:
+      - master
+      - arena/01a0ca49-deranged-pixel-dungeon
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  APP_NAME: DERanged Pixel Dungeon
+  MAIN_CLASS: com.shatteredpixel.shatteredpixeldungeon.desktop.DesktopLauncher
+  # software renderer bundled into the game, see:
+  # https://github.com/pal1000/mesa-dist-win/releases
+  MESA_VERSION: 26.2.0
+  # Modules the game needs that jdeps cannot see, because they are used
+  # reflectively or through service loaders: java.desktop and java.management
+  # are used by libGDX and the desktop launcher, jdk.unsupported by libGDX/LWJGL,
+  # the crypto modules by HTTPS (update/news checks), jdk.zipfs by save file
+  # handling. jdeps adds everything else it finds to this list at build time.
+  BASE_JRE_MODULES: java.base,java.desktop,java.logging,java.management,jdk.management,jdk.unsupported,jdk.crypto.cryptoki,jdk.crypto.ec,jdk.zipfs
+
+jobs:
+  windows-exe:
+    name: Windows .exe
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      # The game ships this renderer so that it works on computers without a
+      # graphics card. It is downloaded here instead of being committed, and it
+      # is only copied into the game in this workflow.
+      - name: Download software renderer (Mesa llvmpipe)
+        shell: pwsh
+        run: |
+          $url = "https://github.com/pal1000/mesa-dist-win/releases/download/$env:MESA_VERSION/mesa3d-$env:MESA_VERSION-release-msvc.7z"
+          Write-Host "Downloading $url"
+          Invoke-WebRequest -Uri $url -OutFile mesa.7z -UseBasicParsing
+          Write-Host ("Downloaded {0:N1} MB" -f ((Get-Item mesa.7z).Length / 1MB))
+
+          # 7-Zip is preinstalled on the runner images
+          7z x mesa.7z -o_mesa -y | Select-Object -Last 3
+          $driver = Get-ChildItem -Path _mesa -Recurse -Filter libgallium_wgl.dll |
+            Where-Object { $_.DirectoryName -match 'x64' } | Select-Object -First 1
+          if (-not $driver) { throw "could not find the 64-bit Mesa drivers in the package" }
+          Write-Host "Using the drivers in $($driver.DirectoryName)"
+
+          $dest = "desktop/src/main/assets/software-gl"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          # the OpenGL loader, the gallium megadriver that contains llvmpipe, the
+          # DirectX shader compiler (optional, used by Mesa's D3D12 driver) and,
+          # for older Mesa releases, the shared GL API library
+          foreach ($file in @("opengl32.dll", "libgallium_wgl.dll", "dxil.dll", "libglapi.dll")) {
+            $found = Get-ChildItem -Path $driver.DirectoryName -Filter $file | Select-Object -First 1
+            if ($found) { Copy-Item $found.FullName $dest -Force }
+          }
+          # Mesa is built with the MSVC runtime, which is not part of Windows
+          foreach ($file in @("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll")) {
+            $found = Get-ChildItem -Path "$env:SystemRoot\System32" -Filter $file | Select-Object -First 1
+            if ($found) { Copy-Item $found.FullName $dest -Force }
+          }
+
+          Get-ChildItem $dest | Select-Object Name, @{Name="MB";Expression={[math]::Round($_.Length/1MB,1)}}
+          foreach ($required in @("opengl32.dll", "libgallium_wgl.dll")) {
+            if (-not (Test-Path "$dest/$required")) { throw "$required is missing from the Mesa package" }
+          }
+
+      # The desktop module only needs the core/SPD-classes/services modules, so
+      # we use settings-desktop.gradle and skip configuring android + ios.
+      - name: Build desktop JAR
+        shell: bash
+        run: |
+          ./gradlew --settings-file settings-desktop.gradle :desktop:release --stacktrace 2>&1 | tee build-log.txt
+
+      - name: Read build version and required modules
+        shell: bash
+        run: |
+          JAR_PATH=$(ls desktop/build/libs/*.jar 2>/dev/null | grep -v -E 'sources|javadoc' | head -n1)
+          if [ -z "$JAR_PATH" ]; then
+            echo "::error::desktop:release did not produce a jar"
+            exit 1
+          fi
+          JAR_NAME=$(basename "$JAR_PATH")
+          # desktop-1.2.0_based_on_3.39.0.jar -> 1.2.0_based_on_3.39.0
+          FULL_VERSION=${JAR_NAME#desktop-}
+          FULL_VERSION=${FULL_VERSION%.jar}
+          # jpackage needs a plain x.y.z version string
+          SHORT_VERSION=$(echo "$FULL_VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
+
+          echo "--- Java modules the game needs (jdeps) ---" | tee -a build-log.txt
+          jdeps --print-module-deps --ignore-missing-deps --multi-release 17 \
+            "$JAR_PATH" 2>> build-log.txt | tr -d '\r' > needed-modules.txt || true
+          cat needed-modules.txt | tee -a build-log.txt
+
+          # Always include the base list above, then whatever jdeps found.
+          JRE_MODULES=$( { echo "$BASE_JRE_MODULES" | tr ',' '\n'; tr -d '\\\r\n ' < needed-modules.txt | tr ',' '\n'; } \
+            | tr -d ' ' | grep -v '^$' | sort -u | paste -sd, - )
+          echo "runtime module set: $JRE_MODULES" | tee -a build-log.txt
+
+          {
+            echo "JAR_NAME=$JAR_NAME"
+            echo "FULL_VERSION=$FULL_VERSION"
+            echo "SHORT_VERSION=$SHORT_VERSION"
+            echo "JRE_MODULES=$JRE_MODULES"
+          } >> "$GITHUB_ENV"
+          echo "Built $JAR_NAME (app version $SHORT_VERSION)"
+
+      # Build the Java runtime that gets shipped inside the game. Doing this
+      # explicitly (instead of letting jpackage create it) keeps the runtime
+      # inspectable: we can list its modules and boot the game with it below.
+      - name: Build bundled Java runtime
+        shell: bash
+        run: |
+          jlink \
+            --add-modules "$JRE_MODULES" \
+            --strip-debug --no-header-files --no-man-pages --compress=2 \
+            --output build/jre 2>&1 | tee -a build-log.txt
+          echo "--- bundled runtime modules ---" | tee -a build-log.txt
+          "build/jre/bin/java" --list-modules | tr -d '\r' | tee -a build-log.txt
+          du -sh build/jre | tee -a build-log.txt
+
+      - name: Package portable app (jpackage app-image)
+        shell: bash
+        run: |
+          jpackage \
+            --type app-image \
+            --input desktop/build/libs \
+            --main-jar "$JAR_NAME" \
+            --main-class "$MAIN_CLASS" \
+            --runtime-image build/jre \
+            --name "$APP_NAME" \
+            --app-version "$SHORT_VERSION" \
+            --vendor "DERanged Pixel Dungeon" \
+            --description "DERanged Pixel Dungeon - a Shattered Pixel Dungeon mod" \
+            --icon desktop/src/main/assets/icons/windows.ico \
+            --dest dist \
+            --java-options "-XX:+IgnoreUnrecognizedVMOptions" 2>&1 | tee -a build-log.txt
+          find "dist/$APP_NAME" -maxdepth 2 | sed -n '1,20p'
+
+      - name: Add readme and zip the portable build
+        shell: pwsh
+        run: |
+          $appDir = "dist/$env:APP_NAME"
+          $readme = @"
+          $env:APP_NAME - Windows build $env:FULL_VERSION
+
+          HOW TO PLAY
+            1. Unzip this folder somewhere you can find it again (Desktop or Documents is fine).
+            2. Double-click "$env:APP_NAME.exe".
+
+          No installation and no Java installation is needed, everything the game
+          needs is bundled in this folder. Java and the game files must stay together,
+          so keep the whole folder, and don't move the .exe out of it.
+
+          NO GRAPHICS CARD NEEDED
+            If your computer cannot use a graphics driver for the game - virtual
+            machines, remote desktop sessions and machines without a graphics card
+            only offer an ancient OpenGL 1.1 driver - the game notices, and restarts
+            itself on the software renderer it carries. That renderer draws
+            everything on the CPU instead of a graphics card: it is slower than real
+            hardware, but it runs anywhere.
+            You can also force it manually by setting the environment variable
+            JDK_JAVA_OPTIONS to -Dderanged.glMode=software before starting the game.
+
+          WINDOWS WARNING
+            This build is not code-signed, so Windows SmartScreen may show
+            "Windows protected your PC" the first time you run it.
+            Click "More info" and then "Run anyway" to start the game.
+
+          SAVES
+            Your progress is saved in:
+              %APPDATA%\.trashboxbobylev\$env:APP_NAME
+            (paste that into the address bar of a file explorer window to find it)
+
+          This is a free, open-source game (GPLv3) built from source on GitHub.
+          "@
+          Set-Content -Path "$appDir/READ ME FIRST.txt" -Value $readme -Encoding UTF8 -NoNewline
+          Compress-Archive -Path $appDir -DestinationPath "dist/DERangedPixelDungeon-$env:SHORT_VERSION-Windows-x64-portable.zip" -CompressionLevel Optimal -Force
+          Get-ChildItem dist
+
+      # Optional: a single-file .exe installer. Needs WiX (present on the runner
+      # image); if it isn't usable the portable zip is still published.
+      - name: Package single-file installer (WiX)
+        id: installer
+        continue-on-error: true
+        shell: bash
+        run: |
+          if ! command -v light.exe >/dev/null 2>&1; then
+            WIX_BIN=$(find "/c/Program Files (x86)" "/c/Program Files" -maxdepth 3 -iname "light.exe" 2>/dev/null | head -n1)
+            if [ -n "$WIX_BIN" ]; then
+              export PATH="$(dirname "$WIX_BIN"):$PATH"
+              echo "Using WiX from $(dirname "$WIX_BIN")" | tee -a build-log.txt
+            fi
+          fi
+          jpackage \
+            --type exe \
+            --input desktop/build/libs \
+            --main-jar "$JAR_NAME" \
+            --main-class "$MAIN_CLASS" \
+            --runtime-image build/jre \
+            --name "$APP_NAME" \
+            --app-version "$SHORT_VERSION" \
+            --vendor "DERanged Pixel Dungeon" \
+            --description "DERanged Pixel Dungeon - a Shattered Pixel Dungeon mod" \
+            --icon desktop/src/main/assets/icons/windows.ico \
+            --dest dist \
+            --java-options "-XX:+IgnoreUnrecognizedVMOptions" \
+            --win-shortcut --win-menu --win-dir-chooser \
+            --win-upgrade-uuid 3f6f6b3a-4d1c-4c4b-9a2e-6d9b7c1f2e10 2>&1 | tee -a build-log.txt
+          mv "dist/$APP_NAME-$SHORT_VERSION.exe" "dist/DERangedPixelDungeon-$SHORT_VERSION-Windows-x64.exe"
+          ls -la dist
+
+      # Make sure the packaged build is actually usable before publishing it.
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -e
+          APP_DIR="dist/$APP_NAME"
+          echo "--- app image contents ---" | tee -a build-log.txt
+          ls -la "$APP_DIR" | tee -a build-log.txt
+
+          test -f "$APP_DIR/$APP_NAME.exe" || { echo "::error::portable launcher .exe is missing"; exit 1; }
+          test -d "$APP_DIR/runtime"       || { echo "::error::bundled runtime is missing"; exit 1; }
+          test -f "$APP_DIR/runtime/bin/java.exe" || { echo "::error::bundled runtime has no java.exe"; exit 1; }
+          test -f "$APP_DIR/app/$JAR_NAME" || { echo "::error::game jar is missing from the app image"; exit 1; }
+
+          echo "--- bundled runtime ---" | tee -a build-log.txt
+          grep -E "^(JAVA_VERSION|MODULES)=" "$APP_DIR/runtime/release" | cut -c1-200 | tee -a build-log.txt
+
+          echo "--- checking that every module the game needs is bundled ---" | tee -a build-log.txt
+          AVAILABLE_MODULES=$("$APP_DIR/runtime/bin/java" --list-modules | tr -d '\r' | cut -d@ -f1)
+          NEEDED_MODULES=$(tr -d '\\\r\n ' < needed-modules.txt | tr ',' ' ')
+          for module in $NEEDED_MODULES; do
+            if ! echo "$AVAILABLE_MODULES" | grep -qx "$module"; then
+              echo "::error::the bundled runtime is missing the Java module '$module'"
+              exit 1
+            fi
+          done
+          echo "all $NEEDED_MODULES present" | tee -a build-log.txt
+
+          echo "--- checking that the software renderer is bundled ---" | tee -a build-log.txt
+          jar tf "desktop/build/libs/$JAR_NAME" | grep "software-gl/" | tee -a build-log.txt
+          for dll in opengl32.dll libgallium_wgl.dll; do
+            jar tf "desktop/build/libs/$JAR_NAME" | grep -qx "software-gl/$dll" \
+              || { echo "::error::$dll is missing from the game jar, the software renderer would not work"; exit 1; }
+          done
+
+          # Boot the game and wait for it to report that it has a window, twice:
+          # once normally, which also exercises the automatic software renderer
+          # fallback on machines like the GitHub runners that have no GPU, and once
+          # with the software renderer forced. Together these prove that players
+          # without a graphics card can start the game.
+          boot_test () {
+            local name="$1"; shift
+            local log="boot-$name.txt"
+            echo "--- boot test: $name ---" | tee -a build-log.txt
+            set +e
+            "$APP_DIR/runtime/bin/java" -XX:+IgnoreUnrecognizedVMOptions "$@" \
+              -cp "dist/$APP_NAME/app/$JAR_NAME" "$MAIN_CLASS" > "$log" 2>&1 &
+            local pid=$!
+            local created=0
+            for _ in $(seq 1 60); do
+              if grep -q "Window created using the" "$log" 2>/dev/null; then created=1; break; fi
+              if ! kill -0 "$pid" 2>/dev/null; then break; fi
+              sleep 2
+            done
+            kill "$pid" 2>/dev/null
+            taskkill //F //T //PID "$pid" >/dev/null 2>&1
+            wait "$pid" 2>/dev/null
+            set -e
+            cat "$log" | tee -a build-log.txt
+            if [ "$created" != "1" ]; then
+              echo "::error::boot test '$name' never created a window"
+              return 1
+            fi
+            echo "boot test '$name' succeeded: $(grep -m1 'Window created using the' "$log")" | tee -a build-log.txt
+            for pattern in "Window created using the" "OpenGL renderer:"; do
+              grep -m1 "$pattern" "$log" >> verification-report.txt || echo "$name: no '$pattern' line was printed" >> verification-report.txt
+            done
+            return 0
+          }
+
+          boot_test normal
+          boot_test software -Dderanged.glMode=software
+
+          echo "--- verification report ---" | tee -a build-log.txt
+          cat verification-report.txt | tee -a build-log.txt
+
+          echo "Package looks good: $APP_NAME $FULL_VERSION" | tee -a build-log.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: DERangedPixelDungeon-${{ env.SHORT_VERSION }}-Windows-x64
+          path: |
+            dist/*.exe
+            dist/*.zip
+            build-log.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish GitHub release
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="windows-exe-$SHORT_VERSION"
+          TITLE="Windows build $SHORT_VERSION"
+          NOTES=$(cat <<EOF
+          Standalone Windows build of **$APP_NAME $FULL_VERSION**.
+
+          Download one of these:
+          * \`DERangedPixelDungeon-$SHORT_VERSION-Windows-x64.exe\` - installer: run it, then start the
+            game from the Start menu or the desktop shortcut.
+          * \`DERangedPixelDungeon-$SHORT_VERSION-Windows-x64-portable.zip\` - no installation: unzip the
+            folder anywhere and double-click "$APP_NAME.exe".
+
+          Java is **not** required, a Java runtime is bundled with the game, and Windows will
+          pick the right one for you (64-bit).
+
+          ### No graphics card needed
+          If your computer cannot provide a modern OpenGL context - virtual machines, remote
+          desktop sessions, and machines without a graphics card usually only offer the OpenGL
+          1.1 driver built into Windows - the game says so and restarts itself on the software
+          renderer it carries (Mesa's llvmpipe), which draws everything on the CPU. Slower than
+          real hardware, but it runs anywhere. It can also be forced with the environment
+          variable \`JDK_JAVA_OPTIONS=-Dderanged.glMode=software\`.
+
+          ### Notes
+          * Not code-signed, so Windows SmartScreen may show "Windows protected your PC" the
+            first time you launch the game. Choose "More info" -> "Run anyway".
+          * Saves are stored in \`%APPDATA%\\.trashboxbobylev\\$APP_NAME\`.
+          * Built automatically from source by the "Build Windows EXE" workflow, from commit
+            $GITHUB_SHA. Both the graphics driver path and the software renderer path are
+            boot-tested on Windows before being published here.
+
+          ### Verified before publishing
+          The packaged game was started on a Windows build machine (which has no graphics card)
+          and reported the following:
+          \`\`\`
+          $(cat verification-report.txt 2>/dev/null || echo "no report was produced")
+          \`\`\`
+
+          This game is free software licensed under the GPLv3.
+          EOF
+          )
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "$TITLE" --notes "$NOTES" --target "$GITHUB_SHA" --latest=false
+          else
+            # keep the notes of a re-run up to date
+            gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --latest=false
+          fi
+
+          FILES=$(ls dist/*.exe dist/*.zip 2>/dev/null)
+          if [ -z "$FILES" ]; then
+            echo "::error::no distributable files were produced"
+            exit 1
+          fi
+          gh release upload "$TAG" $FILES --clobber
+          echo "Released $TAG:"
+          gh release view "$TAG" --json assets --jq '.assets[] | "\(.name) (\(.size) bytes)\n\(.url)"'
+
+      # The GitHub API blocks log downloads from the sandbox this repo is
+      # maintained in, so dump the tail of the build log into a commit comment.
+      - name: Post build log on failure
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "Windows EXE build failed for commit $GITHUB_SHA."
+            echo ""
+            echo '```'
+            tail -c 6000 build-log.txt 2>/dev/null || echo "(no build log was produced)"
+            echo '```'
+          } > build-failure.md
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" -F body=@build-failure.md

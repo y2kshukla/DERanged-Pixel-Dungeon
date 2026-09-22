@@ -21,15 +21,48 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.desktop;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Window;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener;
+import com.badlogic.gdx.graphics.GL20;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.watabou.noosa.audio.Music;
 
 public class DesktopWindowListener implements Lwjgl3WindowListener {
 	
 	@Override
-	public void created ( Lwjgl3Window lwjgl3Window ) { }
+	public void created ( Lwjgl3Window lwjgl3Window ) {
+		//Reported because it is useful to know which OpenGL driver the game ended up
+		//using: it tells users why the game might be slow, and it lets the automated
+		//Windows builds check that the game really got as far as a window.
+		System.out.println("[DERanged] Window created using the " + SoftwareGLFallback.currentMode() + ".");
+		System.out.flush();
+		if (SoftwareGLFallback.isSoftwareMode()) {
+			SoftwareGLFallback.log("window created using the bundled software renderer");
+		}
+
+		//OpenGL cannot be queried yet at this point, so the driver details are
+		//reported once the game is actually rendering
+		if (Gdx.app != null) {
+			Gdx.app.postRunnable(new Runnable() {
+				@Override
+				public void run () {
+					String renderer;
+					try {
+						renderer = Gdx.gl.glGetString( GL20.GL_RENDERER )
+								+ " (OpenGL " + Gdx.gl.glGetString( GL20.GL_VERSION ) + ")";
+					} catch (Throwable t) {
+						renderer = "unknown";
+					}
+					System.out.println("[DERanged] OpenGL renderer: " + renderer);
+					System.out.flush();
+					if (SoftwareGLFallback.isSoftwareMode()) {
+						SoftwareGLFallback.log("OpenGL renderer: " + renderer);
+					}
+				}
+			});
+		}
+	}
 	
 	@Override
 	public void maximized ( boolean b ) {

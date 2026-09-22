@@ -18,3 +18,6 @@ local.properties
 #intellij project files
 *.iml
 *.idea
+
+# Downloaded by the "Build Windows EXE" workflow (Mesa llvmpipe software renderer)
+desktop/src/main/assets/software-gl/

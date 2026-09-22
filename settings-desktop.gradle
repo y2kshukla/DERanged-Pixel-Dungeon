@@ -1,0 +1,23 @@
+// Settings file for building only the desktop version of the game.
+//
+// Usage: ./gradlew --settings-file settings-desktop.gradle :desktop:release
+//
+// It is identical to settings.gradle, minus the mobile platform modules
+// (:android and :ios), which the desktop build does not need. This is used by
+// the "Build Windows EXE" GitHub Actions workflow so that CI doesn't have to
+// set up the Android SDK / macOS tools just to package a desktop build, and so
+// that the desktop build is configured a bit faster.
+
+//core game code modules
+include ':SPD-classes'
+include ':core'
+
+//platform modules
+include ':desktop'
+
+//service modules
+include ':services'
+    //updates
+    include ':services:updates:githubUpdates'
+    //news
+    include ':services:news:shatteredNews'
