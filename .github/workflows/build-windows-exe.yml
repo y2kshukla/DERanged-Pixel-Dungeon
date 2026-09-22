@@ -1,0 +1,225 @@
+name: Build Windows EXE
+
+# Builds a standalone Windows version of the game and publishes it to a GitHub
+# release, so that anyone can download and play it without installing Java:
+#
+#   * DERangedPixelDungeon-<version>-Windows-x64.exe ... one-file installer
+#   * DERangedPixelDungeon-<version>-Windows-x64.zip ... portable (unzip + run)
+#
+# Both are self-contained: the game plus a trimmed Java runtime are bundled
+# inside. A Windows runner is required because jpackage can only create an
+# executable for the operating system it runs on.
+
+on:
+  push:
+    branches:
+      - master
+      - arena/01a0ca49-deranged-pixel-dungeon
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  APP_NAME: DERanged Pixel Dungeon
+  MAIN_CLASS: com.shatteredpixel.shatteredpixeldungeon.desktop.DesktopLauncher
+  # java.desktop/java.management are needed by the desktop launcher and libGDX,
+  # jdk.unsupported by libGDX/LWJGL, and the crypto modules by HTTPS
+  # (used for update/news checks). See upstream desktop/build.gradle for the origin
+  # of this list.
+  JRE_MODULES: java.base,java.desktop,java.logging,java.management,jdk.management,jdk.unsupported,jdk.crypto.cryptoki,jdk.crypto.ec,jdk.zipfs
+
+jobs:
+  windows-exe:
+    name: Windows .exe
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # The desktop module only needs the core/SPD-classes/services modules, so
+      # we use settings-desktop.gradle and skip configuring android + ios.
+      - name: Build desktop JAR
+        shell: bash
+        run: |
+          ./gradlew --settings-file settings-desktop.gradle :desktop:release --stacktrace 2>&1 | tee build-log.txt
+
+      - name: Read build version
+        id: version
+        shell: bash
+        run: |
+          JAR_PATH=$(ls desktop/build/libs/*.jar | grep -v -E 'sources|javadoc' | head -n1)
+          JAR_NAME=$(basename "$JAR_PATH")
+          # desktop-1.2.0_based_on_3.39.0.jar -> 1.2.0_based_on_3.39.0
+          FULL_VERSION=${JAR_NAME#desktop-}
+          FULL_VERSION=${FULL_VERSION%.jar}
+          # jpackage needs a plain x.y.z version string
+          SHORT_VERSION=$(echo "$FULL_VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
+          echo "JAR_NAME=$JAR_NAME" >> "$GITHUB_ENV"
+          echo "FULL_VERSION=$FULL_VERSION" >> "$GITHUB_ENV"
+          echo "SHORT_VERSION=$SHORT_VERSION" >> "$GITHUB_ENV"
+          echo "Built $JAR_NAME (app version $SHORT_VERSION)"
+
+      - name: Package portable app (jpackage app-image)
+        shell: bash
+        run: |
+          jpackage \
+            --type app-image \
+            --input desktop/build/libs \
+            --main-jar "$JAR_NAME" \
+            --main-class "$MAIN_CLASS" \
+            --name "$APP_NAME" \
+            --app-version "$SHORT_VERSION" \
+            --vendor "DERanged Pixel Dungeon" \
+            --description "DERanged Pixel Dungeon - a Shattered Pixel Dungeon mod" \
+            --icon desktop/src/main/assets/icons/windows.ico \
+            --dest dist \
+            --add-modules "$JRE_MODULES" \
+            --java-options "-XX:+IgnoreUnrecognizedVMOptions" 2>&1 | tee -a build-log.txt
+          ls -la "dist/$APP_NAME"
+
+      - name: Add readme and zip the portable build
+        shell: pwsh
+        run: |
+          $appDir = "dist/$env:APP_NAME"
+          $readme = @"
+          $env:APP_NAME - Windows build $env:FULL_VERSION
+
+          HOW TO PLAY
+            1. Unzip this folder somewhere you can find it again (Desktop or Documents is fine).
+            2. Double-click "$env:APP_NAME.exe".
+
+          No installation and no Java installation is needed, everything the game
+          needs is bundled in this folder. Java and the game files must stay together,
+          so keep the whole folder, and don't move the .exe out of it.
+
+          WINDOWS WARNING
+            This build is not code-signed, so Windows SmartScreen may show
+            "Windows protected your PC" the first time you run it.
+            Click "More info" and then "Run anyway" to start the game.
+
+          SAVES
+            Your progress is saved in:
+              %APPDATA%\.trashboxbobylev\$env:APP_NAME
+            (paste that into the address bar of a file explorer window to find it)
+
+          This is a free, open-source game (GPLv3) built from source on GitHub.
+          "@
+          Set-Content -Path "$appDir/READ ME FIRST.txt" -Value $readme -Encoding UTF8 -NoNewline
+          Compress-Archive -Path $appDir -DestinationPath "dist/DERangedPixelDungeon-$env:SHORT_VERSION-Windows-x64-portable.zip" -CompressionLevel Optimal -Force
+          Get-ChildItem dist
+
+      # Optional: a single-file .exe installer. Needs WiX (installed on the
+      # runner image); if it isn't usable the portable zip is still published.
+      - name: Package single-file installer (WiX)
+        id: installer
+        continue-on-error: true
+        shell: bash
+        run: |
+          if ! command -v light.exe >/dev/null 2>&1; then
+            WIX_BIN=$(find "/c/Program Files (x86)" "/c/Program Files" -maxdepth 3 -iname "light.exe" 2>/dev/null | head -n1)
+            if [ -n "$WIX_BIN" ]; then
+              export PATH="$(dirname "$WIX_BIN"):$PATH"
+              echo "Found WiX at $WIX_BIN" | tee -a build-log.txt
+            fi
+          fi
+          jpackage \
+            --type exe \
+            --input desktop/build/libs \
+            --main-jar "$JAR_NAME" \
+            --main-class "$MAIN_CLASS" \
+            --name "$APP_NAME" \
+            --app-version "$SHORT_VERSION" \
+            --vendor "DERanged Pixel Dungeon" \
+            --description "DERanged Pixel Dungeon - a Shattered Pixel Dungeon mod" \
+            --icon desktop/src/main/assets/icons/windows.ico \
+            --dest dist \
+            --add-modules "$JRE_MODULES" \
+            --java-options "-XX:+IgnoreUnrecognizedVMOptions" \
+            --win-shortcut --win-menu --win-dir-chooser \
+            --win-upgrade-uuid 3f6f6b3a-4d1c-4c4b-9a2e-6d9b7c1f2e10 2>&1 | tee -a build-log.txt
+          mv "dist/$APP_NAME-$SHORT_VERSION.exe" "dist/DERangedPixelDungeon-$SHORT_VERSION-Windows-x64.exe"
+          ls -la dist
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: DERangedPixelDungeon-${{ env.SHORT_VERSION }}-Windows-x64
+          path: |
+            dist/*.exe
+            dist/*.zip
+            build-log.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish GitHub release
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="windows-exe-$SHORT_VERSION"
+          TITLE="Windows build $SHORT_VERSION (portable .exe)"
+          NOTES=$(cat <<EOF
+          Standalone Windows build of **$APP_NAME $FULL_VERSION**.
+
+          Download one of these:
+          * \`DERangedPixelDungeon-$SHORT_VERSION-Windows-x64.exe\` - installer: run it, then launch the
+            game from the Start menu or the desktop shortcut.
+          * \`DERangedPixelDungeon-$SHORT_VERSION-Windows-x64-portable.zip\` - no installation: unzip the
+            folder anywhere and double-click "$APP_NAME.exe".
+
+          Java is **not** required, a Java runtime is bundled with the game.
+
+          ### Notes
+          * The build is not code-signed, so Windows SmartScreen may show
+            "Windows protected your PC" the first time you launch the game.
+            Choose "More info" -> "Run anyway".
+          * Saves are stored in \`%APPDATA%\\.trashboxbobylev\\$APP_NAME\`.
+          * Built automatically by the \`Build Windows EXE\` workflow from commit $GITHUB_SHA.
+
+          This game is free software licensed under the GPLv3, and is built from source with
+          [jpackage](https://dev.java/learn/jpackage/).
+          EOF
+          )
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "$TITLE" --notes "$NOTES" --target "$GITHUB_SHA" --latest=false
+          fi
+
+          FILES=$(ls dist/*.exe dist/*.zip 2>/dev/null)
+          if [ -z "$FILES" ]; then
+            echo "No distributable files were produced, nothing to upload."
+            exit 1
+          fi
+          gh release upload "$TAG" $FILES --clobber
+          echo "Released $TAG:"
+          gh release view "$TAG" --json assets --jq '.assets[] | "\(.name) - \(.size) bytes\n\(.url)"'
+
+      # GitHub's actions API doesn't allow us to read logs from this sandbox, so
+      # dump the tail of the build log into a commit comment if anything failed.
+      - name: Save build log on failure
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "Windows EXE build failed for commit $GITHUB_SHA."
+            echo ""
+            echo '```'
+            tail -c 6000 build-log.txt 2>/dev/null || echo "(no build log was produced)"
+            echo '```'
+          } > build-failure.md
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" -F body=@build-failure.md
