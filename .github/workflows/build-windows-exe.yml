@@ -290,7 +290,7 @@ jobs:
             local pid=$!
             local created=0
             for _ in $(seq 1 60); do
-              if grep -q "OpenGL renderer:" "$log" 2>/dev/null; then created=1; break; fi
+              if grep -q "Window created using the" "$log" 2>/dev/null; then created=1; break; fi
               if ! kill -0 "$pid" 2>/dev/null; then break; fi
               sleep 2
             done
@@ -303,8 +303,10 @@ jobs:
               echo "::error::boot test '$name' never created a window"
               return 1
             fi
-            echo "boot test '$name' succeeded: $(grep -m1 'OpenGL renderer:' "$log")" | tee -a build-log.txt
-            grep -m1 'Window created' "$log" >> verification-report.txt
+            echo "boot test '$name' succeeded: $(grep -m1 'Window created using the' "$log")" | tee -a build-log.txt
+            for pattern in "Window created using the" "OpenGL renderer:"; do
+              grep -m1 "$pattern" "$log" >> verification-report.txt || echo "$name: no '$pattern' line was printed" >> verification-report.txt
+            done
             return 0
           }
 

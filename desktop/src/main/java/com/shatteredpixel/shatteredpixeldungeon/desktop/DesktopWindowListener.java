@@ -32,18 +32,30 @@ public class DesktopWindowListener implements Lwjgl3WindowListener {
 	
 	@Override
 	public void created ( Lwjgl3Window lwjgl3Window ) {
-		//reported because it is useful to know which OpenGL driver the game ended up
-		//using: it tells users why a game is slow, and it tells the automated
-		//Windows builds whether they actually got a working window
-		String renderer;
-		try {
-			renderer = Gdx.gl.glGetString( GL20.GL_RENDERER ) + " (OpenGL " + Gdx.gl.glGetString( GL20.GL_VERSION ) + ")";
-		} catch (Throwable t) {
-			renderer = "unknown";
-		}
-		System.out.println("[DERanged] Window created using the " + SoftwareGLFallback.currentMode()
-				+ " - OpenGL renderer: " + renderer);
+		//Reported because it is useful to know which OpenGL driver the game ended up
+		//using: it tells users why the game might be slow, and it lets the automated
+		//Windows builds check that the game really got as far as a window.
+		System.out.println("[DERanged] Window created using the " + SoftwareGLFallback.currentMode() + ".");
 		System.out.flush();
+
+		//OpenGL cannot be queried yet at this point, so the driver details are
+		//reported once the game is actually rendering
+		if (Gdx.app != null) {
+			Gdx.app.postRunnable(new Runnable() {
+				@Override
+				public void run () {
+					String renderer;
+					try {
+						renderer = Gdx.gl.glGetString( GL20.GL_RENDERER )
+								+ " (OpenGL " + Gdx.gl.glGetString( GL20.GL_VERSION ) + ")";
+					} catch (Throwable t) {
+						renderer = "unknown";
+					}
+					System.out.println("[DERanged] OpenGL renderer: " + renderer);
+					System.out.flush();
+				}
+			});
+		}
 	}
 	
 	@Override
