@@ -10,10 +10,11 @@ name: Build Windows EXE
 # inside. A Windows runner is required because jpackage can only create an
 # executable for the operating system it runs on.
 #
-# Before anything is published, the packaged build is checked on the runner:
-# the bundled runtime must contain every Java module the game needs, and the
-# game must boot with that runtime (only the OpenGL context can fail on a CI
-# machine, which has no real GPU).
+# The game also carries a software renderer (Mesa's llvmpipe, downloaded below),
+# which it falls back to automatically when a computer cannot provide a modern
+# OpenGL context, e.g. virtual machines, remote sessions and machines without a
+# graphics card. Before anything is published, both paths are tested on the
+# runner: the game must actually get as far as creating its window.
 
 on:
   push:
@@ -28,6 +29,9 @@ permissions:
 env:
   APP_NAME: DERanged Pixel Dungeon
   MAIN_CLASS: com.shatteredpixel.shatteredpixeldungeon.desktop.DesktopLauncher
+  # software renderer bundled into the game, see:
+  # https://github.com/pal1000/mesa-dist-win/releases
+  MESA_VERSION: 26.2.0
   # Modules the game needs that jdeps cannot see, because they are used
   # reflectively or through service loaders: java.desktop and java.management
   # are used by libGDX and the desktop launcher, jdk.unsupported by libGDX/LWJGL,
@@ -52,6 +56,44 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
+
+      # The game ships this renderer so that it works on computers without a
+      # graphics card. It is downloaded here instead of being committed, and it
+      # is only copied into the game in this workflow.
+      - name: Download software renderer (Mesa llvmpipe)
+        shell: pwsh
+        run: |
+          $url = "https://github.com/pal1000/mesa-dist-win/releases/download/$env:MESA_VERSION/mesa3d-$env:MESA_VERSION-release-msvc.7z"
+          Write-Host "Downloading $url"
+          Invoke-WebRequest -Uri $url -OutFile mesa.7z -UseBasicParsing
+          Write-Host ("Downloaded {0:N1} MB" -f ((Get-Item mesa.7z).Length / 1MB))
+
+          # 7-Zip is preinstalled on the runner images
+          7z x mesa.7z -o_mesa -y | Select-Object -Last 3
+          $driver = Get-ChildItem -Path _mesa -Recurse -Filter libgallium_wgl.dll |
+            Where-Object { $_.DirectoryName -match 'x64' } | Select-Object -First 1
+          if (-not $driver) { throw "could not find the 64-bit Mesa drivers in the package" }
+          Write-Host "Using the drivers in $($driver.DirectoryName)"
+
+          $dest = "desktop/src/main/assets/software-gl"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          # the OpenGL loader, the gallium megadriver that contains llvmpipe, the
+          # DirectX shader compiler (optional, used by Mesa's D3D12 driver) and,
+          # for older Mesa releases, the shared GL API library
+          foreach ($file in @("opengl32.dll", "libgallium_wgl.dll", "dxil.dll", "libglapi.dll")) {
+            $found = Get-ChildItem -Path $driver.DirectoryName -Filter $file | Select-Object -First 1
+            if ($found) { Copy-Item $found.FullName $dest -Force }
+          }
+          # Mesa is built with the MSVC runtime, which is not part of Windows
+          foreach ($file in @("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll")) {
+            $found = Get-ChildItem -Path "$env:SystemRoot\System32" -Filter $file | Select-Object -First 1
+            if ($found) { Copy-Item $found.FullName $dest -Force }
+          }
+
+          Get-ChildItem $dest | Select-Object Name, @{Name="MB";Expression={[math]::Round($_.Length/1MB,1)}}
+          foreach ($required in @("opengl32.dll", "libgallium_wgl.dll")) {
+            if (-not (Test-Path "$dest/$required")) { throw "$required is missing from the Mesa package" }
+          }
 
       # The desktop module only needs the core/SPD-classes/services modules, so
       # we use settings-desktop.gradle and skip configuring android + ios.
@@ -140,6 +182,16 @@ jobs:
           needs is bundled in this folder. Java and the game files must stay together,
           so keep the whole folder, and don't move the .exe out of it.
 
+          NO GRAPHICS CARD NEEDED
+            If your computer cannot use a graphics driver for the game - virtual
+            machines, remote desktop sessions and machines without a graphics card
+            only offer an ancient OpenGL 1.1 driver - the game notices, and restarts
+            itself on the software renderer it carries. That renderer draws
+            everything on the CPU instead of a graphics card: it is slower than real
+            hardware, but it runs anywhere.
+            You can also force it manually by setting the environment variable
+            JDK_JAVA_OPTIONS to -Dderanged.glMode=software before starting the game.
+
           WINDOWS WARNING
             This build is not code-signed, so Windows SmartScreen may show
             "Windows protected your PC" the first time you run it.
@@ -216,24 +268,47 @@ jobs:
           done
           echo "all $NEEDED_MODULES present" | tee -a build-log.txt
 
-          # Boot the game with the bundled runtime. There is no real GPU on a CI
-          # machine, so an OpenGL failure (or simply still running when the
-          # timeout hits) is a pass: it means the runtime, the game jar, and the
-          # game's assets all loaded fine.
-          echo "--- boot test ---" | tee -a build-log.txt
-          set +e
-          export MSYS2_ARG_CONV_EXCL="*"
-          timeout 75 "$APP_DIR/runtime/bin/java" -XX:+IgnoreUnrecognizedVMOptions \
-            -cp "dist/$APP_NAME/app/$JAR_NAME" "$MAIN_CLASS" > boot-test.txt 2>&1
-          BOOT_RESULT=$?
-          set -e
-          cat boot-test.txt | tee -a build-log.txt
-          echo "boot test exit code: $BOOT_RESULT" | tee -a build-log.txt
+          echo "--- checking that the software renderer is bundled ---" | tee -a build-log.txt
+          jar tf "desktop/build/libs/$JAR_NAME" | grep "software-gl/" | tee -a build-log.txt
+          for dll in opengl32.dll libgallium_wgl.dll; do
+            jar tf "desktop/build/libs/$JAR_NAME" | grep -qx "software-gl/$dll" \
+              || { echo "::error::$dll is missing from the game jar, the software renderer would not work"; exit 1; }
+          done
 
-          if grep -qE "NoClassDefFoundError|ClassNotFoundException|UnsupportedClassVersionError|ExceptionInInitializerError|NoSuchMethodError|Could not find or load main class|Unable to load library|module not found|java.lang.module" boot-test.txt; then
-            echo "::error::the packaged game could not start up (see the log above)"
-            exit 1
-          fi
+          # Boot the game and wait for it to report that it has a window, twice:
+          # once normally, which also exercises the automatic software renderer
+          # fallback on machines like the GitHub runners that have no GPU, and once
+          # with the software renderer forced. Together these prove that players
+          # without a graphics card can start the game.
+          boot_test () {
+            local name="$1"; shift
+            local log="boot-$name.txt"
+            echo "--- boot test: $name ---" | tee -a build-log.txt
+            set +e
+            "$APP_DIR/runtime/bin/java" -XX:+IgnoreUnrecognizedVMOptions "$@" \
+              -cp "dist/$APP_NAME/app/$JAR_NAME" "$MAIN_CLASS" > "$log" 2>&1 &
+            local pid=$!
+            local created=0
+            for _ in $(seq 1 60); do
+              if grep -q "OpenGL renderer:" "$log" 2>/dev/null; then created=1; break; fi
+              if ! kill -0 "$pid" 2>/dev/null; then break; fi
+              sleep 2
+            done
+            kill "$pid" 2>/dev/null
+            taskkill //F //T //PID "$pid" >/dev/null 2>&1
+            wait "$pid" 2>/dev/null
+            set -e
+            cat "$log" | tee -a build-log.txt
+            if [ "$created" != "1" ]; then
+              echo "::error::boot test '$name' never created a window"
+              return 1
+            fi
+            echo "boot test '$name' succeeded: $(grep -m1 'OpenGL renderer:' "$log")" | tee -a build-log.txt
+            return 0
+          }
+
+          boot_test normal
+          boot_test software -Dderanged.glMode=software
 
           echo "Package looks good: $APP_NAME $FULL_VERSION" | tee -a build-log.txt
 
@@ -269,12 +344,21 @@ jobs:
           Java is **not** required, a Java runtime is bundled with the game, and Windows will
           pick the right one for you (64-bit).
 
+          ### No graphics card needed
+          If your computer cannot provide a modern OpenGL context - virtual machines, remote
+          desktop sessions, and machines without a graphics card usually only offer the OpenGL
+          1.1 driver built into Windows - the game says so and restarts itself on the software
+          renderer it carries (Mesa's llvmpipe), which draws everything on the CPU. Slower than
+          real hardware, but it runs anywhere. It can also be forced with the environment
+          variable \`JDK_JAVA_OPTIONS=-Dderanged.glMode=software\`.
+
           ### Notes
           * Not code-signed, so Windows SmartScreen may show "Windows protected your PC" the
             first time you launch the game. Choose "More info" -> "Run anyway".
           * Saves are stored in \`%APPDATA%\\.trashboxbobylev\\$APP_NAME\`.
           * Built automatically from source by the "Build Windows EXE" workflow, from commit
-            $GITHUB_SHA. The packaged game is boot-tested on Windows before being published here.
+            $GITHUB_SHA. Both the graphics driver path and the software renderer path are
+            boot-tested on Windows before being published here.
 
           This game is free software licensed under the GPLv3.
           EOF

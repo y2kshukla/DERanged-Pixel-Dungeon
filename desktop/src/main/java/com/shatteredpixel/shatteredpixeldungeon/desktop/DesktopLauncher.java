@@ -51,6 +51,15 @@ public class DesktopLauncher {
 			return;
 		}
 
+		//Some computers cannot give the game a modern OpenGL context (virtual
+		//machines, remote sessions, computers without a graphics card). If the game
+		//was restarted for that reason it runs on its bundled software renderer,
+		//which must be loaded before anything touches OpenGL.
+		if (SoftwareGLFallback.isSoftwareMode()) {
+			System.out.println("[DERanged] Starting on the bundled software renderer, no graphics card is needed.");
+			SoftwareGLFallback.loadSoftwareRenderer();
+		}
+
 		//detection for FreeBSD (which is equivalent to linux for us)
 		//TODO might want to merge request this to libGDX
 		if (System.getProperty("os.name").contains("FreeBSD")) {
@@ -186,6 +195,15 @@ public class DesktopLauncher {
 		config.setWindowIcon("icons/icon_16.png", "icons/icon_32.png", "icons/icon_48.png",
 				"icons/icon_64.png", "icons/icon_128.png", "icons/icon_256.png");
 
-		new Lwjgl3Application(new ShatteredPixelDungeon(new DesktopPlatformSupport()), config);
+		try {
+			new Lwjgl3Application(new ShatteredPixelDungeon(new DesktopPlatformSupport()), config);
+		} catch (RuntimeException | Error failure) {
+			//if the only problem is that this computer has no usable OpenGL driver,
+			//the game restarts on the software renderer it is bundled with
+			if (SoftwareGLFallback.handleStartupFailure(failure, args)) {
+				return;
+			}
+			throw failure;
+		}
 	}
 }

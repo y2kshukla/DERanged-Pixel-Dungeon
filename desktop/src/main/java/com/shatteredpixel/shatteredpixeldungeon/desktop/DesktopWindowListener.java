@@ -21,15 +21,30 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.desktop;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Window;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener;
+import com.badlogic.gdx.graphics.GL20;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.watabou.noosa.audio.Music;
 
 public class DesktopWindowListener implements Lwjgl3WindowListener {
 	
 	@Override
-	public void created ( Lwjgl3Window lwjgl3Window ) { }
+	public void created ( Lwjgl3Window lwjgl3Window ) {
+		//reported because it is useful to know which OpenGL driver the game ended up
+		//using: it tells users why a game is slow, and it tells the automated
+		//Windows builds whether they actually got a working window
+		String renderer;
+		try {
+			renderer = Gdx.gl.glGetString( GL20.GL_RENDERER ) + " (OpenGL " + Gdx.gl.glGetString( GL20.GL_VERSION ) + ")";
+		} catch (Throwable t) {
+			renderer = "unknown";
+		}
+		System.out.println("[DERanged] Window created using the " + SoftwareGLFallback.currentMode()
+				+ " - OpenGL renderer: " + renderer);
+		System.out.flush();
+	}
 	
 	@Override
 	public void maximized ( boolean b ) {

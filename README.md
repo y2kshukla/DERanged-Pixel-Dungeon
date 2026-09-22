@@ -18,6 +18,11 @@ Java does not need to be installed, it is bundled with the game:
 * **Portable:** [DERangedPixelDungeon-1.2.0-Windows-x64-portable.zip](https://github.com/y2kshukla/DERanged-Pixel-Dungeon/releases/download/windows-exe-1.2.0/DERangedPixelDungeon-1.2.0-Windows-x64-portable.zip)
   - unzip it anywhere and run `DERanged Pixel Dungeon.exe`. Keep the folder together.
 
+No graphics card is needed: if your computer cannot provide a modern OpenGL context (virtual machines,
+remote desktop sessions, and machines without a graphics driver only offer the ancient OpenGL 1.1
+driver that is built into Windows), the game says so and restarts itself on the software renderer it
+carries, which draws everything on the CPU instead of a graphics card.
+
 The builds are not code-signed, so Windows SmartScreen may warn you the first time you start the game
 ("More info" -> "Run anyway"). Saves are stored in `%APPDATA%\.trashboxbobylev\DERanged Pixel Dungeon`.
 
