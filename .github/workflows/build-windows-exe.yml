@@ -79,6 +79,20 @@ jobs:
           } >> "$GITHUB_ENV"
           echo "Built $JAR_NAME (app version $SHORT_VERSION)"
 
+      # Build the Java runtime that gets shipped inside the game. Doing this
+      # explicitly (instead of letting jpackage create it) keeps the runtime
+      # inspectable: we can list its modules and boot the game with it below.
+      - name: Build bundled Java runtime
+        shell: bash
+        run: |
+          jlink \
+            --add-modules "$JRE_MODULES" \
+            --strip-debug --no-header-files --no-man-pages --compress=2 \
+            --output build/jre 2>&1 | tee -a build-log.txt
+          echo "--- bundled runtime modules ---" | tee -a build-log.txt
+          "build/jre/bin/java" --list-modules | tee -a build-log.txt
+          du -sh build/jre | tee -a build-log.txt
+
       - name: Package portable app (jpackage app-image)
         shell: bash
         run: |
@@ -87,13 +101,13 @@ jobs:
             --input desktop/build/libs \
             --main-jar "$JAR_NAME" \
             --main-class "$MAIN_CLASS" \
+            --runtime-image build/jre \
             --name "$APP_NAME" \
             --app-version "$SHORT_VERSION" \
             --vendor "DERanged Pixel Dungeon" \
             --description "DERanged Pixel Dungeon - a Shattered Pixel Dungeon mod" \
             --icon desktop/src/main/assets/icons/windows.ico \
             --dest dist \
-            --add-modules "$JRE_MODULES" \
             --java-options "-XX:+IgnoreUnrecognizedVMOptions" 2>&1 | tee -a build-log.txt
           find "dist/$APP_NAME" -maxdepth 2 | sed -n '1,20p'
 
@@ -152,8 +166,8 @@ jobs:
             --vendor "DERanged Pixel Dungeon" \
             --description "DERanged Pixel Dungeon - a Shattered Pixel Dungeon mod" \
             --icon desktop/src/main/assets/icons/windows.ico \
+            --runtime-image build/jre \
             --dest dist \
-            --add-modules "$JRE_MODULES" \
             --java-options "-XX:+IgnoreUnrecognizedVMOptions" \
             --win-shortcut --win-menu --win-dir-chooser \
             --win-upgrade-uuid 3f6f6b3a-4d1c-4c4b-9a2e-6d9b7c1f2e10 2>&1 | tee -a build-log.txt
@@ -212,7 +226,7 @@ jobs:
           echo "Package looks good: $APP_NAME $FULL_VERSION" | tee -a build-log.txt
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: DERangedPixelDungeon-${{ env.SHORT_VERSION }}-Windows-x64
