@@ -37,6 +37,9 @@ public class DesktopWindowListener implements Lwjgl3WindowListener {
 		//Windows builds check that the game really got as far as a window.
 		System.out.println("[DERanged] Window created using the " + SoftwareGLFallback.currentMode() + ".");
 		System.out.flush();
+		if (SoftwareGLFallback.isSoftwareMode()) {
+			SoftwareGLFallback.log("window created using the bundled software renderer");
+		}
 
 		//OpenGL cannot be queried yet at this point, so the driver details are
 		//reported once the game is actually rendering
@@ -53,6 +56,9 @@ public class DesktopWindowListener implements Lwjgl3WindowListener {
 					}
 					System.out.println("[DERanged] OpenGL renderer: " + renderer);
 					System.out.flush();
+					if (SoftwareGLFallback.isSoftwareMode()) {
+						SoftwareGLFallback.log("OpenGL renderer: " + renderer);
+					}
 				}
 			});
 		}

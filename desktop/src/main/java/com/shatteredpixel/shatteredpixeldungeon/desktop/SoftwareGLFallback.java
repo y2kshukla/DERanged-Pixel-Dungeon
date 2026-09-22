@@ -24,12 +24,15 @@ package com.shatteredpixel.shatteredpixeldungeon.desktop;
 import com.badlogic.gdx.utils.SharedLibraryLoader;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -78,8 +81,36 @@ public class SoftwareGLFallback {
 	//Where the DLLs are unpacked to. The name is stable so that they only have to
 	//be written out once, and the game's own temp folder is always writable.
 	private static final String EXTRACT_DIR = "deranged-software-gl";
+	//Diagnostics for computers that needed the software renderer, written next to
+	//the DLLs. This is the file to include in a report about graphics problems.
+	private static final String LOG_FILE = "graphics-log.txt";
 
 	private static boolean loaded = false;
+
+	/** The folder the bundled renderer is unpacked into, and where it logs to. */
+	public static File diagnosticsFolder() {
+		return new File(System.getProperty("java.io.tmpdir"), EXTRACT_DIR);
+	}
+
+	/**
+	 * Appends a line to the graphics diagnostics log. Only used on computers that
+	 * could not use their own graphics driver, so the file only exists for them.
+	 */
+	public static void log(String line) {
+		File dir = diagnosticsFolder();
+		if (!dir.isDirectory() && !dir.mkdirs()) return;
+		try {
+			FileWriter writer = new FileWriter(new File(dir, LOG_FILE), true);
+			try {
+				writer.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT).format(new Date())
+						+ "  " + line + System.lineSeparator());
+			} finally {
+				writer.close();
+			}
+		} catch (IOException e) {
+			//diagnostics are best effort only
+		}
+	}
 
 	/** True if the game is meant to use the software renderer. */
 	public static boolean isSoftwareMode() {
@@ -118,9 +149,11 @@ public class SoftwareGLFallback {
 				System.load(dll.getAbsolutePath());
 			} catch (Throwable e) {
 				System.err.println("[DERanged] Could not load the bundled software renderer (" + fileName + "): " + e);
+				log("could not load " + fileName + ": " + e);
 				return;
 			}
 		}
+		log("loaded the bundled software renderer from " + dir);
 
 		File gl = new File(dir, "opengl32.dll");
 		if (gl.isFile()) {
@@ -139,6 +172,9 @@ public class SoftwareGLFallback {
 		if (isSoftwareMode() || !isAvailable() || !mentionsWindowCreation(failure)) {
 			return false;
 		}
+
+		log("the graphics driver could not create a window: " + message(failure));
+		log("restarting the game on the bundled software renderer");
 
 		System.out.println("[DERanged] This computer's graphics driver could not be used:");
 		System.out.println("[DERanged]   " + message(failure));
@@ -217,7 +253,7 @@ public class SoftwareGLFallback {
 
 	/** Writes the bundled renderer out to a temp folder, and returns that folder. */
 	private static File extract() {
-		File dir = new File(System.getProperty("java.io.tmpdir"), EXTRACT_DIR);
+		File dir = diagnosticsFolder();
 		if (!dir.isDirectory() && !dir.mkdirs()) {
 			System.err.println("[DERanged] Could not create " + dir + " to unpack the software renderer into.");
 			return null;
