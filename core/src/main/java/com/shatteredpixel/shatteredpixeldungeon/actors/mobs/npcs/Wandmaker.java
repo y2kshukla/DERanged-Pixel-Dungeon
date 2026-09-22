@@ -21,6 +21,7 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs;
 
+import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
@@ -463,6 +464,7 @@ public class Wandmaker extends NPC {
 			Notes.remove( Notes.Landmark.WANDMAKER );
 			//other quests award score when their boss is defeated
 			if (Quest.type == 1) {
+				Badges.validateBettererChoice(6);
 				Statistics.questScores[1] += 2000;
 			}
 		}

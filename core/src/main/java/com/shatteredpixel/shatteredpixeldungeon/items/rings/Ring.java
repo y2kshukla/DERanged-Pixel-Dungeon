@@ -21,6 +21,8 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.items.rings;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
@@ -45,6 +47,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicImmune;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Paralysis;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.PinCushion;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Poison;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.PowerfulDegrade;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Terror;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vertigo;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Weakness;
@@ -90,8 +93,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
 
 public class Ring extends KindofMisc {
 	
@@ -433,6 +434,7 @@ public class Ring extends KindofMisc {
 		if (enhancedRingsCombo != null){
 			lvl += enhancedRingsCombo.getCombo();
 		}
+		if (Dungeon.hero != null && Dungeon.hero.buff(PowerfulDegrade.class) != null) return 0;
 		return lvl;
 	}
 

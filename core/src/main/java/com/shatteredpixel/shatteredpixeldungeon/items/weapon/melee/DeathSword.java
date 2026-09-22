@@ -35,7 +35,7 @@ public class DeathSword extends MeleeWeapon {
         if (attacker instanceof Hero
                 && damage >= defender.HP
                 && defender instanceof Mob
-                && ((Hero) attacker).lvl <= ((Mob) defender).maxLvl + 2) {
+                && ((Hero) attacker).lvl <= ((Mob) defender).maxLvl + 4) {
             Buff.affect(attacker, MaxHPBoost.class).kill();
         }
         return super.proc(attacker, defender, damage);

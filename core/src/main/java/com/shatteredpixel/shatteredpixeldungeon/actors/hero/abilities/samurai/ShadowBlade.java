@@ -43,7 +43,7 @@ public class ShadowBlade extends ArmorAbility {
 	}
 
 	@Override
-	protected void activate(ClassArmor armor, Hero hero, Integer target) {
+    public void activate(ClassArmor armor, Hero hero, Integer target) {
 
 		Buff.prolong(hero, shadowBladeTracker.class, shadowBladeTracker.DURATION);
 		hero.sprite.operate(hero.pos);

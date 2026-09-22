@@ -31,6 +31,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Electricity;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ChampionEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.DM300;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Pylon;
@@ -330,6 +331,7 @@ public class CavesBossLevel extends Level {
 		do {
 			boss.pos = pointToCell(Random.element(mainArena.getPoints()));
 		} while (!openSpace[boss.pos] || map[boss.pos] == Terrain.EMPTY_SP || Actor.findChar(boss.pos) != null);
+		ChampionEnemy.rollWarp(boss);
 		GameScene.add( boss );
 
 		Game.runOnRenderThread(new Callback() {

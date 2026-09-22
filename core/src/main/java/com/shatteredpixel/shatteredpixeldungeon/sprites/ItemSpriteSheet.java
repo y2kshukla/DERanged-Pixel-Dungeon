@@ -678,6 +678,7 @@ public class ItemSpriteSheet {
 	public static final int RECLAIM_TRAP    = SPELLS+10;
 	public static final int RETURN_BEACON   = SPELLS+11;
 	public static final int SUMMON_ELE      = SPELLS+12;
+	public static final int PIPISFUSION     = SPELLS+13;
 
 	static{
 		assignItemRect(WILD_ENERGY,     12, 11);
@@ -693,6 +694,7 @@ public class ItemSpriteSheet {
 		assignItemRect(RECLAIM_TRAP,     8, 16);
 		assignItemRect(RETURN_BEACON,    8, 16);
 		assignItemRect(SUMMON_ELE,       8, 16);
+		assignItemRect(PIPISFUSION,      8, 16);
 	}
 	
 	private static final int FOOD       =                                   xy(1, 28);  //16 slots
@@ -761,6 +763,9 @@ public class ItemSpriteSheet {
 	public static final int CHAOSSTONE = QUEST+9;
 	public static final int RUNIC_CLUMP= QUEST+10;
 	public static final int RED_CRYSTAL= QUEST+11;
+	public static final int KROMER     = QUEST+13;
+	public static final int EXOTIC_KROMER = QUEST+14;
+	public static final int EXOTIC_KRONER = QUEST+15;
 	static{
 		assignItemRect(DUST,    12, 11);
 		assignItemRect(CANDLE,  12, 12);
@@ -773,6 +778,9 @@ public class ItemSpriteSheet {
 		assignItemRect(CHAOSSTONE,  10, 15);
 		assignItemRect(RUNIC_CLUMP, 12, 11);
 		assignItemRect(RED_CRYSTAL, 10, 15);
+		assignItemRect(KROMER, 16, 16);
+		assignItemRect(EXOTIC_KROMER, 15, 14);
+		assignItemRect(EXOTIC_KRONER, 12, 13);
 	}
 
 	private static final int BAGS       =                                   xy(1, 31);  //16 slots

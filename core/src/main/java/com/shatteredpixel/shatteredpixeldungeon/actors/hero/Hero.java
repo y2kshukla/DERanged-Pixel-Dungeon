@@ -21,6 +21,10 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.actors.hero;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.level;
+import static com.shatteredpixel.shatteredpixeldungeon.items.Item.updateQuickslot;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Bones;
@@ -76,6 +80,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicalCombo;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MindVision;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Momentum;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MonkEnergy;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.NoDeath;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.PainKiller;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Paralysis;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.PhysicalEmpower;
@@ -91,6 +96,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Tackle;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.TimeStasis;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Undead;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vertigo;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Warp;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarriorParry;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.chargearea.MutationBuff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.ArmorAbility;
@@ -127,6 +133,7 @@ import com.shatteredpixel.shatteredpixeldungeon.effects.Speck;
 import com.shatteredpixel.shatteredpixeldungeon.effects.SpellSprite;
 import com.shatteredpixel.shatteredpixeldungeon.effects.Splash;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.EnergyParticle;
+import com.shatteredpixel.shatteredpixeldungeon.effects.particles.ExoParticle;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.GodfireParticle;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.ShadowParticle;
 import com.shatteredpixel.shatteredpixeldungeon.items.Ankh;
@@ -169,6 +176,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfExperience
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfHealing;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfMight;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfTalent;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.KromerPotion;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.PotionOfDivineInspiration;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.PotionOfMagicalSight;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.DarkGold;
@@ -263,10 +271,6 @@ import com.watabou.utils.Reflection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.level;
-import static com.shatteredpixel.shatteredpixeldungeon.items.Item.updateQuickslot;
 
 public class Hero extends Char {
 
@@ -706,6 +710,20 @@ public class Hero extends Char {
 		}
 		Talent.onTalentUpgraded(this, talent);
 	}
+
+    public void degradeTalent( Talent talent ){
+        boolean isTalentGone = false;
+        for (LinkedHashMap<Talent, Integer> tier : talents){
+            for (Talent f : tier.keySet()){
+                if (f == talent) {
+                    tier.put(talent, Math.max(0, tier.get(talent)-1));
+                    if (tier.get(talent) == 0)
+                        isTalentGone = true;
+                }
+            }
+        }
+        Talent.onTalentDegraded(this, talent, isTalentGone);
+    }
 
 	public int talentPointsSpent(int tier){
 		int total = 0;
@@ -1502,6 +1520,8 @@ public class Hero extends Char {
 
 		if (subClass.is(HeroSubClass.SLAYER) && buff(Awakening.class) == null) {
 			Buff.affect(this, Awakening.class).indicate();
+		} else if (buff(Awakening.class) != null && buff(Awakening.AwakeningCooldown.class) == null){
+			ActionIndicator.setAction(buff(Awakening.class));
 		}
 
 		if (buff(Undead.class) != null) {
@@ -2299,6 +2319,32 @@ public class Hero extends Char {
                 damage *= 1 + 0.1f * hero.pointsInTalent(Talent.TARGET_SPOTTING, Talent.RK_SNIPER);
             }
         }
+		if (buff(KromerPotion.Effect.class) != null){
+			if (enemy != null) {
+				int dmg = Random.Int(0, damage*2);
+				Char toHeal, toDamage;
+
+				if (Random.Int(3) == 0) {
+					toHeal = enemy;
+					toDamage = this;
+				} else {
+					toHeal = this;
+					toDamage = enemy;
+				}
+				toHeal.HP = Math.min(toHeal.HT, toHeal.HP + dmg);
+				toHeal.sprite.emitter().burst(Speck.factory(Speck.HEALING), 3);
+
+				if (toDamage == Dungeon.hero) {
+					Sample.INSTANCE.play(Assets.Sounds.MIMIC, 1f, 2f);
+					Warp.inflict(dmg, 0.5f);
+				} else {
+					Sample.INSTANCE.play(Assets.Sounds.DEGRADE, 1f, 2.5f);
+					toDamage.damage(dmg, toHeal);
+					toDamage.sprite.emitter().start(ExoParticle.FACTORY, 0.05f, 10);
+				}
+			}
+
+		}
 		if (isSubclassedLoosely(HeroSubClass.FIGHTER)) {
             if (wep == null && Random.Int(3) < hero.pointsInTalent(Talent.QUICK_STEP, Talent.RK_FIGHTER)) {
                 Buff.prolong(hero, Talent.QuickStep.class, 1.0001f);
@@ -3502,16 +3548,17 @@ public class Hero extends Char {
 	//This is relevant because we call isAlive during drawing, which has both performance
 	//and thread coordination implications if that method calls buff(...) frequently
 	private Berserk berserk;
+	private NoDeath noDeath;
 
 	@Override
 	public boolean isAlive() {
-		
 		if (HP <= 0){
-			if (buff(Undead.class) != null) return true;
+			if (noDeath == null) noDeath = buff(NoDeath.class);
 			if (berserk == null) berserk = buff(Berserk.class);
-			return berserk != null && berserk.berserking();
+			return (berserk != null && berserk.berserking()) || (noDeath != null && noDeath.visualcooldown() > 0);
 		} else {
 			berserk = null;
+			noDeath = null;
 			return super.isAlive();
 		}
 	}

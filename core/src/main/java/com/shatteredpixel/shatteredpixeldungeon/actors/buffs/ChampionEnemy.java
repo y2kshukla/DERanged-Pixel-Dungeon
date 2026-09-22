@@ -119,6 +119,24 @@ public abstract class ChampionEnemy extends Buff {
 				m.state = m.WANDERING;
 			}
 		}
+		rollWarp(m);
+	}
+
+	public static void rollWarp(Mob m){
+		int warpAmount = 0;
+		if (Dungeon.hero.buff(Warp.class) != null){
+			warpAmount = Math.round(5 + Math.min(35, Dungeon.hero.buff(Warp.class).getStacks() / 4));
+			if (m.properties().contains(Char.Property.BOSS)){
+				warpAmount = Math.round(10 + Math.min(45, Dungeon.hero.buff(Warp.class).getStacks() / 5));
+			}
+		}
+		boolean shouldBeWarped = Random.Int(100) < warpAmount;
+		if (shouldBeWarped){
+			if (Char.hasProp(m, Char.Property.BOSS))
+				Buff.affect(m, WarpedEnemy.BossEffect.class);
+			else
+				Buff.affect(m, WarpedEnemy.class);
+		}
 	}
 
 	public static Class[] championTitles = {

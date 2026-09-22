@@ -44,6 +44,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Blacksmith;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Ghost;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Imp;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.MysteryMerchant;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Wandmaker;
 import com.shatteredpixel.shatteredpixeldungeon.items.Amulet;
 import com.shatteredpixel.shatteredpixeldungeon.items.Generator;
@@ -120,7 +121,7 @@ public class Dungeon {
 		ENCH_STONE,
 		INT_STONE,
 		TRINKET_CATA,
-		LAB_ROOM, //actually a room, but logic is the same
+		LAB_ROOM, MYSTMERCH_ROOM, //actually a room, but logic is the same
 		BULLET_BELT,
 
 		//Health potion sources
@@ -314,6 +315,7 @@ public class Dungeon {
 		Wandmaker.Quest.reset();
 		Blacksmith.Quest.reset();
 		Imp.Quest.reset();
+        MysteryMerchant.Stats.reset();
 
 		hero = new Hero();
 		hero.live();
@@ -492,6 +494,14 @@ public class Dungeon {
 		
 		level.reset();
 		switchLevel( level, level.entrance() );
+	}
+
+	public static int chapterSize(){
+		return 5;
+	}
+
+	public static int chapterNumber(){
+		return Math.max(scalingDepth() / chapterSize(), 0);
 	}
 
 	public static long seedCurDepth(){
@@ -687,6 +697,16 @@ public class Dungeon {
 		return false;
 	}
 
+	public static boolean mystMerchNeeded() {
+		//1 MM each floor set
+		int asLeftThisSet = 1 - (LimitedDrops.MYSTMERCH_ROOM.count - (depth / Dungeon.chapterSize()));
+		if (asLeftThisSet <= 0) return false;
+
+		int floorThisSet = (depth % Dungeon.chapterSize());
+		//chance is floors left / scrolls left
+		return Random.Int(Dungeon.chapterSize() - floorThisSet) < asLeftThisSet;
+	}
+
 	public static boolean beltNeeded() {
 		//1 AS each floor set
 		int asLeftThisSet = 1 - (LimitedDrops.BULLET_BELT.count - (depth / 5));
@@ -766,6 +786,7 @@ public class Dungeon {
 			Wandmaker	.Quest.storeInBundle( quests );
 			Blacksmith	.Quest.storeInBundle( quests );
 			Imp			.Quest.storeInBundle( quests );
+            MysteryMerchant.Stats.storeInBundle( quests );
 			bundle.put( QUESTS, quests );
 			
 			SpecialRoom.storeRoomsInBundle( bundle );
@@ -893,11 +914,13 @@ public class Dungeon {
 				Wandmaker.Quest.restoreFromBundle( quests );
 				Blacksmith.Quest.restoreFromBundle( quests );
 				Imp.Quest.restoreFromBundle( quests );
+                MysteryMerchant.Stats.restoreFromBundle( quests );
 			} else {
 				Ghost.Quest.reset();
 				Wandmaker.Quest.reset();
 				Blacksmith.Quest.reset();
 				Imp.Quest.reset();
+                MysteryMerchant.Stats.reset();
 			}
 			
 			SpecialRoom.restoreRoomsFromBundle(bundle);

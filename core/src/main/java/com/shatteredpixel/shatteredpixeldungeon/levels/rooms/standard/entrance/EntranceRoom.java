@@ -93,6 +93,13 @@ public class EntranceRoom extends StandardRoom {
 		} while (level.findMob(entrance) != null);
 		Painter.set( level, entrance, Terrain.ENTRANCE );
 
+		setupStairs(level, entrance);
+
+		placeEarlyGuidePages(level, this);
+
+	}
+
+	public static void setupStairs(Level level, int entrance){
 		if (Dungeon.depth == 1){
 			level.transitions.add(new LevelTransition(level, entrance, LevelTransition.Type.SURFACE));
 		} else {
@@ -106,9 +113,6 @@ public class EntranceRoom extends StandardRoom {
 				level.transitions.add(new LevelTransition(level, entrance, LevelTransition.Type.REGULAR_ENTRANCE));
 			}
 		}
-
-		placeEarlyGuidePages(level, this);
-
 	}
 
 	public static void placeEarlyGuidePages(Level level, Room r){

@@ -29,6 +29,7 @@ import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
+import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.ConfusionGas;
 import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.ToxicGas;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Barrier;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
@@ -43,8 +44,11 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Sleep;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Slow;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Terror;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vertigo;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vulnerable;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.WarpedEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.spells.WallOfLight;
 import com.shatteredpixel.shatteredpixeldungeon.effects.FloatingText;
+import com.shatteredpixel.shatteredpixeldungeon.effects.MagicMissile;
 import com.shatteredpixel.shatteredpixeldungeon.effects.TargetedCell;
 import com.shatteredpixel.shatteredpixeldungeon.effects.particles.SparkParticle;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.DriedRose;
@@ -64,9 +68,11 @@ import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.DM300Sprite;
 import com.shatteredpixel.shatteredpixeldungeon.ui.BossHealthBar;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
+import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.BArray;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.GameMath;
@@ -375,22 +381,26 @@ public class DM300 extends Mob {
 		Dungeon.hero.interrupt();
 
 		int gasVented = 0;
+		Class<? extends Blob> usedGas = ToxicGas.class;
+		if (buff(WarpedEnemy.BossEffect.class) != null){
+			usedGas = ConfusionGas.class;
+		}
 
 		Ballistica trajectory = new Ballistica(pos, target.pos, Ballistica.STOP_TARGET);
 
 		int gasMulti = Dungeon.isChallenged(Challenges.STRONGER_BOSSES) ? 2 : 1;
 
 		for (int i : trajectory.subPath(0, trajectory.dist)){
-			GameScene.add(Blob.seed(i, 20*gasMulti, ToxicGas.class));
+			GameScene.add(Blob.seed(i, 20*gasMulti, usedGas));
 			gasVented += 20*gasMulti;
 		}
 
-		GameScene.add(Blob.seed(trajectory.collisionPos, 100*gasMulti, ToxicGas.class));
+		GameScene.add(Blob.seed(trajectory.collisionPos, 100*gasMulti, usedGas));
 
 		if (gasVented < 250*gasMulti){
 			int toVentAround = (int)Math.ceil(((250*gasMulti) - gasVented)/8f);
 			for (int i : PathFinder.NEIGHBOURS8){
-				GameScene.add(Blob.seed(pos+i, toVentAround, ToxicGas.class));
+				GameScene.add(Blob.seed(pos+i, toVentAround, usedGas));
 			}
 
 		}
@@ -485,6 +495,25 @@ public class DM300 extends Mob {
 			if (lock != null && !isImmune(src.getClass()) && !isInvulnerable(src.getClass())){
 				if (Dungeon.isChallenged(Challenges.STRONGER_BOSSES))   lock.addTime(dmgTaken/2f);
 				else                                                    lock.addTime(dmgTaken);
+			}
+		}
+
+		if (buff(WarpedEnemy.BossEffect.class) != null){
+			Sample.INSTANCE.play( Assets.Sounds.ROCKS );
+			Camera.main.shake( 2, 0.7f );
+			MagicMissile.arrangeBlast(pos, sprite, MagicMissile.FORCE_CONE, 2f);
+			PathFinder.buildDistanceMap( pos, BArray.not( Dungeon.level.solid, null ), 2 );
+			for (int i = 0; i < PathFinder.distance.length; i++) {
+				if (PathFinder.distance[i] < Integer.MAX_VALUE) {
+					Char ch = Actor.findChar(i);
+					if (ch != null && !(ch instanceof DM300)){
+						ch.damage(damageRoll()/3, this);
+						Buff.affect(ch, Vulnerable.class, 5f);
+						if (ch == Dungeon.hero){
+							Statistics.bossScores[2] -= 100;
+						}
+					}
+				}
 			}
 		}
 
@@ -588,6 +617,7 @@ public class DM300 extends Mob {
 		if (Statistics.qualifiedForBossChallengeBadge){
 			Badges.validateBossChallengeCompleted();
 		}
+		Badges.validateBettererChoice(2);
 		Statistics.bossScores[2] += 3000;
 
 		LloydsBeacon beacon = Dungeon.hero.belongings.getItem(LloydsBeacon.class);
@@ -620,6 +650,22 @@ public class DM300 extends Mob {
 				if (Actor.findChar(pos+i) == null &&
 						Dungeon.level.trueDistance(bestpos, target) > Dungeon.level.trueDistance(pos+i, target)){
 					bestpos = pos+i;
+				}
+			}
+			if (buff(WarpedEnemy.BossEffect.class) != null){
+				MagicMissile.arrangeBlast(pos, sprite, MagicMissile.MAGIC_MISS_CONE, 3f);
+				PathFinder.buildDistanceMap( pos, BArray.not( Dungeon.level.solid, null ), 3 );
+				for (int i = 0; i < PathFinder.distance.length; i++) {
+					if (PathFinder.distance[i] < Integer.MAX_VALUE) {
+						Char ch = Actor.findChar(i);
+						if (ch != null && !(ch instanceof DM300)){
+							ch.damage(damageRoll()/3, this);
+							Buff.affect(ch, Vertigo.class, 4f);
+							if (ch == Dungeon.hero){
+								Statistics.bossScores[2] -= 100;
+							}
+						}
+					}
 				}
 			}
 			if (bestpos != pos){

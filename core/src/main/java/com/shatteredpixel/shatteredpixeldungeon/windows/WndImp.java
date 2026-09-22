@@ -25,6 +25,7 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Imp;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.DwarfToken;
+import com.shatteredpixel.shatteredpixeldungeon.items.quest.Kromer;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
@@ -32,6 +33,7 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
+import com.watabou.utils.Random;
 
 public class WndImp extends Window {
 	
@@ -78,6 +80,10 @@ public class WndImp extends Window {
 			GLog.i( Messages.capitalize(Messages.get(Dungeon.hero, "you_now_have", reward.name())) );
 		} else {
 			Dungeon.level.drop( reward, imp.pos ).sprite.drop();
+		}
+
+		if (Random.Int(2) == 0){
+			Dungeon.level.drop(new Kromer(), imp.pos).sprite.drop();
 		}
 		
 		imp.flee();

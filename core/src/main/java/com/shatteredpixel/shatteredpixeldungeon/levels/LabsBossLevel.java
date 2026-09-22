@@ -28,13 +28,9 @@ import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
-import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
-import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.ConfusionGas;
-import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.CorrosiveGas;
-import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.ParalyticGas;
-import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.ToxicGas;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AscensionChallenge;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ChampionEnemy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Rebel;
@@ -258,6 +254,7 @@ public class LabsBossLevel extends Level {
 		Rebel boss = new Rebel();
 		boss.state = boss.WANDERING;
 		boss.pos = bossPos;
+		ChampionEnemy.rollWarp(boss);
 		GameScene.add( boss );
 		boss.beckon(Dungeon.hero.pos);
 

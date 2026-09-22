@@ -21,6 +21,8 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
@@ -34,6 +36,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MonkEnergy;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Recharging;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Regeneration;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Vulnerable;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Warp;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
@@ -87,14 +90,13 @@ import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
-
 public class MeleeWeapon extends Weapon {
 
 	public static String AC_ABILITY = "ABILITY";
 	public static String AC_SCRAP = "SCRAP";
 
 	public boolean duelistStart = false;
+	public boolean trollers = false;
 
 	@Override
 	public void activate(Char ch) {
@@ -488,6 +490,20 @@ public class MeleeWeapon extends Weapon {
 				lvl*(tier+1);   //level scaling
 	}
 
+	@Override
+	public int min() {
+		if (trollers)
+			return super.min()*2;
+		return super.min();
+	}
+
+	@Override
+	public int max() {
+		if (trollers)
+			return super.max()*2;
+		return super.max();
+	}
+
 	public int STRReq(int lvl){
 		int req = STRReq(tier, lvl);
 		if (masteryPotionBonus){
@@ -531,6 +547,13 @@ public class MeleeWeapon extends Weapon {
 			}
 		}
 		return damage;
+	}
+
+	@Override
+	public int proc(Char attacker, Char defender, int damage) {
+		if (trollers)
+			Warp.inflict(10f, 1f);
+		return super.proc(attacker, defender, damage);
 	}
 
 	public int tier() {
@@ -594,6 +617,9 @@ public class MeleeWeapon extends Weapon {
 				info += "\n\n" + Messages.get(Weapon.class, "not_cursed");
 			}
 		}
+
+		if (trollers)
+			info += "\n\n" + Messages.get(MeleeWeapon.class, "cursed_kromer");
 
 		//the mage's staff has no ability as it can only be gained by the mage
 		if (Dungeon.hero != null && Dungeon.hero.heroClass.isExact(HeroClass.DUELIST) && !(this instanceof MagesStaff)){
@@ -660,17 +686,20 @@ public class MeleeWeapon extends Weapon {
 
 	private static final String TIER = "tier";
 	private static final String DUELIST_START   = "dueliststart";
+	private static final String KROMER	        = "pipisfusion";
 
 	@Override
 	public void storeInBundle(Bundle bundle) {
 		super.storeInBundle(bundle);
 		bundle.put(TIER, tier);
 		bundle.put(DUELIST_START, duelistStart);
+		bundle.put(KROMER, trollers);
 	}
 
 	@Override
 	public void restoreFromBundle(Bundle bundle) {
 		super.restoreFromBundle(bundle);
+		trollers = bundle.getBoolean(KROMER);
 		if (bundle.getInt(TIER) != 0) {
 			tier = bundle.getInt(TIER);
 		}

@@ -1,0 +1,84 @@
+package com.shatteredpixel.shatteredpixeldungeon.items.spells;
+
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Warp;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
+import com.shatteredpixel.shatteredpixeldungeon.items.Item;
+import com.shatteredpixel.shatteredpixeldungeon.items.armor.Armor;
+import com.shatteredpixel.shatteredpixeldungeon.items.quest.Kromer;
+import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfUpgrade;
+import com.shatteredpixel.shatteredpixeldungeon.items.weapon.Weapon;
+import com.shatteredpixel.shatteredpixeldungeon.items.weapon.bow.SpiritBow;
+import com.shatteredpixel.shatteredpixeldungeon.items.weapon.missiles.MissileWeapon;
+import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
+import com.shatteredpixel.shatteredpixeldungeon.levels.traps.DistortionTrap;
+import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
+import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
+import com.watabou.utils.PathFinder;
+import com.watabou.utils.Random;
+
+public class KromerScroll extends Spell{
+    {
+        image = ItemSpriteSheet.EXOTIC_KROMER;
+    }
+
+    private static final ItemSprite.Glowing CHAOTIC = new ItemSprite.Glowing( 0.2f  );
+
+    @Override
+    public ItemSprite.Glowing glowing() {
+        return CHAOTIC;
+    }
+
+    @Override
+    public int value() {
+        return quantity * Random.Int(6, 1341);
+    }
+
+    @Override
+    protected void onCast(Hero hero) {
+        Warp.inflict(150, 10f);
+        for (int i = 0; i < Dungeon.level.length(); i++){
+            if (Dungeon.level.passable[i] && !Dungeon.level.heroFOV[i]){
+                boolean doors = false;
+                for (int l : PathFinder.NEIGHBOURS8){
+                    if (Dungeon.level.insideMap(i + l) && Dungeon.level.map[i + l] == Terrain.DOOR){
+                        doors = true;
+                    }
+                }
+                if (!doors)
+                    new DistortionTrap().set(i).activate();
+            }
+        }
+        for (Item item : Dungeon.hero.belongings){
+            if (item.isUpgradable() && !(item instanceof SpiritBow)){
+                if (item instanceof MissileWeapon){
+                    item.level(item.level()+1);
+                } else if (item instanceof Weapon && ((Weapon) item).enchantment != null) {
+                    ((Weapon) item).upgrade(true);
+                } else if (item instanceof Armor && ((Armor) item).glyph != null) {
+                    ((Armor) item).upgrade(true);
+                } else {
+                    item.upgrade();
+                }
+            }
+        }
+        detach( curUser.belongings.backpack );
+        updateQuickslot();
+        hero.spendAndNext( 1f );
+    }
+
+    public static class Recipe extends com.shatteredpixel.shatteredpixeldungeon.items.Recipe.SimpleRecipe {
+
+        {
+            inputs =  new Class[]{ScrollOfUpgrade.class, Kromer.class};
+            inQuantity = new int[]{1, 1};
+
+            cost = Random.Int(2, 20);
+
+            output = KromerScroll.class;
+            outQuantity = 1;
+        }
+
+    }
+}
+

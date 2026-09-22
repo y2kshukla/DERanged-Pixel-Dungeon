@@ -52,7 +52,7 @@ public class RipperDemon extends Mob {
 		viewDistance = Light.DISTANCE;
 
 		EXP = 9; //for corrupting
-		maxLvl = -2;
+		maxLvl = -4;
 
 		HUNTING = new Hunting();
 

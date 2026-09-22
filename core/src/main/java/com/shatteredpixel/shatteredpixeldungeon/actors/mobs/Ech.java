@@ -1,5 +1,7 @@
 package com.shatteredpixel.shatteredpixeldungeon.actors.mobs;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.level;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
@@ -22,8 +24,6 @@ import com.watabou.utils.Random;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.level;
-
 public class Ech extends DirectableAlly {
 
     {
@@ -35,7 +35,7 @@ public class Ech extends DirectableAlly {
         HP = HT;
         viewDistance = Light.DISTANCE;
 
-        maxLvl = -1;
+        maxLvl = -4;
 
         baseSpeed = 1f;
     }

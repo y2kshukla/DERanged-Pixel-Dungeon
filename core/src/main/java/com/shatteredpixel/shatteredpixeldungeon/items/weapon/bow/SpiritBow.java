@@ -26,6 +26,7 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.PowerfulDegrade;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.RevealedArea;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
@@ -285,6 +286,7 @@ public class SpiritBow extends Weapon {
 	public int level() {
 		int level = Dungeon.hero == null ? 0 : Dungeon.hero.lvl/5;
 		if (curseInfusionBonus) level += 1 + level/6;
+		if (Dungeon.hero != null && Dungeon.hero.buff(PowerfulDegrade.class) != null) return 0;
 		return level;
 	}
 

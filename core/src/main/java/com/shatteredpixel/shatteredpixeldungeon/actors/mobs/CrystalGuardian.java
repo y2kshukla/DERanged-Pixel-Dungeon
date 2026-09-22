@@ -52,7 +52,7 @@ public class CrystalGuardian extends Mob{
 		defenseSkill = 14;
 
 		EXP = 10;
-		maxLvl = -2;
+		maxLvl = -4;
 
 		SLEEPING = new Sleeping();
 		state = SLEEPING;

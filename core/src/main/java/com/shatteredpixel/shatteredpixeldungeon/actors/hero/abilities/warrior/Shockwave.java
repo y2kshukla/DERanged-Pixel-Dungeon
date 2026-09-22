@@ -21,6 +21,10 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.warrior;
 
+import static com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent.AFTERSHOCK;
+import static com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent.SHOCK_FORCE;
+import static com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent.STRIKING_WAVE;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
@@ -49,8 +53,6 @@ import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
-
-import static com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent.*;
 
 public class Shockwave extends ArmorAbility {
 
@@ -162,7 +164,7 @@ public class Shockwave extends ArmorAbility {
 	public static class ShockForceStunHold extends FlavourBuff {{ actPriority = VFX_PRIO; }}
 
 	@Override
-	protected void activate(ClassArmor armor, Hero hero, Integer target) {
+    public void activate(ClassArmor armor, Hero hero, Integer target) {
 		if (target == null){
 			return;
 		}

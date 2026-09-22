@@ -25,6 +25,7 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.npcs.Ghost;
 import com.shatteredpixel.shatteredpixeldungeon.items.Item;
 import com.shatteredpixel.shatteredpixeldungeon.items.armor.Armor;
+import com.shatteredpixel.shatteredpixeldungeon.items.quest.Kromer;
 import com.shatteredpixel.shatteredpixeldungeon.items.weapon.Weapon;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
@@ -37,6 +38,7 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
+import com.watabou.utils.Random;
 
 public class WndSadGhost extends Window {
 
@@ -121,6 +123,10 @@ public class WndSadGhost extends Window {
 			GLog.i( Messages.capitalize(Messages.get(Dungeon.hero, "you_now_have", reward.name())) );
 		} else {
 			Dungeon.level.drop( reward, ghost.pos ).sprite.drop();
+		}
+
+		if (Random.Int(2) == 0){
+			Dungeon.level.drop(new Kromer(), ghost.pos).sprite.drop();
 		}
 		
 		ghost.yell( Messages.get(this, "farewell") );

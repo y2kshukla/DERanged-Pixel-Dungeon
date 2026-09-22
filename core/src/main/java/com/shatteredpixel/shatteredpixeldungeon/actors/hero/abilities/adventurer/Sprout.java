@@ -51,7 +51,7 @@ public class Sprout extends ArmorAbility {
 	}
 
 	@Override
-	protected void activate(ClassArmor armor, Hero hero, Integer target) {
+    public void activate(ClassArmor armor, Hero hero, Integer target) {
 		Ballistica aim;
 		ArrayList<Integer> plantCandidates = new ArrayList<>();
 		if (hero.pos % Dungeon.level.width() > 10){

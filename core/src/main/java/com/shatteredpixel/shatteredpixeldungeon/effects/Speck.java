@@ -23,6 +23,7 @@ package com.shatteredpixel.shatteredpixeldungeon.effects;
 
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.utils.WarpPile;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.TextureFilm;
@@ -71,6 +72,7 @@ public class Speck extends Image {
 	public static final int STORM       = 117;
 	public static final int INFERNO     = 118;
 	public static final int BLIZZARD    = 119;
+	public static final int WARPCLOUD   = 120;
 
 	//new Speck
 	public static final int THUNDER_STORM = 201;
@@ -142,6 +144,7 @@ public class Speck extends Image {
 		case BLIZZARD:
 		case INFERNO:
 		case THUNDER_STORM:
+		case WARPCLOUD:
 			frame( film.get( STEAM ) );
 			break;
 		case CALM:
@@ -366,6 +369,13 @@ public class Speck extends Image {
 			angularSpeed = Random.Float( 200, 300 ) * (Random.Int(2) == 0 ? -1 : 1);
 			angle = Random.Float( 360 );
 			lifespan = Random.Float( 1f, 3f );
+			break;
+
+		case WARPCLOUD:
+			hardlight(WarpPile.COLOR);
+			angularSpeed = Random.Float( 150, 350 ) * (Random.Int(2) == 0 ? -1 : 1);
+			angle = Random.Float( 360 );
+			lifespan = Random.Float( 1f, 2f );
 			break;
 
 		case THUNDER_STORM:

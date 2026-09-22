@@ -23,7 +23,6 @@ package com.shatteredpixel.shatteredpixeldungeon.levels.rooms.standard.entrance;
 
 import com.shatteredpixel.shatteredpixeldungeon.levels.Level;
 import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
-import com.shatteredpixel.shatteredpixeldungeon.levels.features.LevelTransition;
 import com.shatteredpixel.shatteredpixeldungeon.levels.painters.Painter;
 import com.shatteredpixel.shatteredpixeldungeon.levels.rooms.standard.RingRoom;
 
@@ -46,7 +45,7 @@ public class RingEntranceRoom extends RingRoom {
 	@Override
 	protected void placeCenterDetail(Level level, int pos) {
 		Painter.set(level, pos, Terrain.ENTRANCE_SP);
-		level.transitions.add(new LevelTransition(level, pos, LevelTransition.Type.REGULAR_ENTRANCE));
+		EntranceRoom.setupStairs(level, pos);
 	}
 
 }

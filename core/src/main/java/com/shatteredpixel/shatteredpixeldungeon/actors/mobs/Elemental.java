@@ -22,6 +22,7 @@
 package com.shatteredpixel.shatteredpixeldungeon.actors.mobs;
 
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
+import com.shatteredpixel.shatteredpixeldungeon.Badges;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.Statistics;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
@@ -422,6 +423,7 @@ public abstract class Elemental extends Mob {
 				Dungeon.level.drop( new Embers(), pos ).sprite.drop();
 				//assign score here as player may choose to keep the embers
 				Statistics.questScores[1] += 2000;
+				Badges.validateBettererChoice(6);
 				Game.runOnRenderThread(new Callback() {
 					@Override
 					public void call() {

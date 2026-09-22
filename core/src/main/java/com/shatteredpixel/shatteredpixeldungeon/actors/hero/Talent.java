@@ -21,6 +21,9 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.actors.hero;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.level;
+
 import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
@@ -97,6 +100,8 @@ import com.shatteredpixel.shatteredpixeldungeon.items.armor.ClothArmor;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.CloakOfShadows;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.HolyTome;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.HornOfPlenty;
+import com.shatteredpixel.shatteredpixeldungeon.items.food.Berry;
+import com.shatteredpixel.shatteredpixeldungeon.items.food.SupplyRation;
 import com.shatteredpixel.shatteredpixeldungeon.items.pills.Pill;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.Potion;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfStrength;
@@ -165,9 +170,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Set;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.level;
 
 public enum Talent {
 
@@ -1497,7 +1499,12 @@ public enum Talent {
 	public static int talentAmount(HeroClass hCl, int tier){
 		int amount = 5;
 		if (tier == 2) amount++;
-		if (hCl == HeroClass.RAT_KING) amount*=2;
+		if (tier == 3) amount *= 2;
+		if (hCl == HeroClass.RAT_KING) {
+			if (tier == 3)
+				amount *= 3;
+			amount*=2;
+		}
 		return amount;
 	}
 
@@ -1505,6 +1512,8 @@ public enum Talent {
 		if (tier >= 5) return 0;
 		int max = tierLevelThresholds[tier+1] - tierLevelThresholds[tier];
 		if (hero != null && hero.isClassedLoosely(HeroClass.RAT_KING)) max *= 1.5f;
+		if (hero != null && hero.talents.get(tier - 1).size() > talentAmount(hero.heroClass, tier) && tier < 4)
+			max += 2 * (hero.talents.get(tier - 1).size() - talentAmount(hero.heroClass, tier));
 		return max;
 	}
 
@@ -1857,6 +1866,110 @@ public enum Talent {
 			} else {
 				level.drop(bow, Dungeon.hero.pos).sprite.drop();
 			}
+		}
+	}
+
+	public static void onTalentDegraded(Hero hero, Talent talent, boolean isGone){
+		if (talent == HEIGHTENED_SENSES || talent == FARSIGHT || talent == DIVINE_SENSE || talent == TELESCOPE || talent == DRAGONS_EYE || talent == KINGS_VISION || talent == PERFECT_COLLECTION || talent == RK_SNIPER || talent == RK_SPECIALIST){
+			Dungeon.observe();
+		}
+
+		if (talent == TWIN_UPGRADES || talent == DESPERATE_POWER || talent == RK_BATTLEMAGE || talent == RK_CHAMPION
+				|| talent == STRONGMAN || talent == DURABLE_PROJECTILES || talent == ACCUMULATION || talent == PURSUIT || talent == ENERGY_SURGE || talent == RK_BERSERKER){
+			Item.updateQuickslot();
+		}
+
+		//if we happen to have spirit form applied with a ring of might
+		if (talent == SPIRIT_FORM){
+			Dungeon.hero.updateHT(false);
+		}
+
+		if (isGone){
+			if ((talent == IRON_WILL || talent == NOBLE_CAUSE) && !hero.heroClass.is(HeroClass.WARRIOR)){
+				Buff.detach(hero, BrokenSeal.WarriorShield.class);
+			}
+			if (talent == PROTECTIVE_SHADOWS){
+				Buff.detach(hero, Talent.ProtectiveShadowsTracker.class);
+			}
+			if (talent == CACHED_RATIONS){
+				Buff.detach(hero, CachedRationsDropped.class);
+				for (Item item: hero.belongings){
+					if (item instanceof SupplyRation){
+						item.detachAll(hero.belongings.backpack);
+						break;
+					}
+				}
+			}
+			if (talent == NATURES_BOUNTY){
+				Buff.detach(hero, NatureBerriesDropped.class);
+				for (Item item: hero.belongings){
+					if (item instanceof Berry){
+						item.detachAll(hero.belongings.backpack);
+						break;
+					}
+				}
+			}
+			if (talent == LIGHT_CLOAK && hero.heroClass == HeroClass.ROGUE){
+				for (Item item : Dungeon.hero.belongings.backpack){
+					if (item instanceof CloakOfShadows){
+						((CloakOfShadows) item).onDetach();
+					}
+				}
+			}
+			if (talent == LIGHT_READING && hero.heroClass == HeroClass.CLERIC){
+				for (Item item : Dungeon.hero.belongings.backpack){
+					if (item instanceof HolyTome){
+						((HolyTome) item).onDetach();
+					}
+				}
+			}
+			if (talent == PARRY || talent == NOBLE_CALL) {
+				Buff.detach(hero, ParryTracker.class);
+			}
+
+			if (talent == RK_ASSASSIN && hero.invisible > 0){
+				Buff.detach(hero, Preparation.class);
+			}
+
+			if (talent  == RK_ENGINEER) {
+				Buff.detach(hero, Build.class);
+			}
+
+			if (talent  == RK_HORSEMAN) {
+				Buff.detach(hero, HorseRiding.class);
+			}
+
+			if (talent  == RK_CRUSADER) {
+				Buff.detach(hero, Pray.class);
+			}
+
+			if (talent  == RK_MEDICALOFFICER) {
+				Buff.detach(hero, Command.class);
+			}
+
+			if (talent == RK_SHARPSHOOTER) {
+				Buff.detach(hero, SharpShooterBuff.class);
+			}
+		}
+
+		if ((talent == WATCHTOWER || talent == RK_ENGINEER) && hero.pointsInTalent(WATCHTOWER) > 1) {
+			for (Char ch : Actor.chars()) {
+				if (ch instanceof WatchTower) {
+					((WatchTower) ch).updateFOV();
+				}
+			}
+		}
+
+		if (talent == STORED_POWER || talent == RK_SLASHER) {
+			BuffIndicator.refreshHero();
+		}
+
+		if (talent == LARGER_MAGAZINE || talent == PERFECT_COLLECTION) {
+			Item.updateQuickslot();
+		}
+
+		if (talent == MAX_HEALTH || talent == EXTRA_BULK) {
+			hero.updateHT(true);
 		}
 	}
 
@@ -2233,7 +2346,7 @@ public enum Talent {
 		if (hero.pointsInTalent(VETERANS_INTUITION) == 2 && item instanceof Armor){
 			identify = true;
 		}
-		if (hero.hasTalent(THIEFS_INTUITION) && item instanceof Ring){
+		if (hero.hasTalent(THIEFS_INTUITION, ROYAL_INTUITION) && item instanceof Ring){
 			if (hero.pointsInTalent(THIEFS_INTUITION) == 2){
 				identify = true;
 			}
@@ -2832,6 +2945,101 @@ public enum Talent {
 		initClassTalents( cls, talents, new LinkedHashMap<>());
 	}
 
+	public static Talent[] talentList(HeroClass cls, int tier){
+		switch (tier) {
+			case 1:
+				switch (cls) {
+					case WARRIOR:
+					default:
+						return new Talent[]{HEARTY_MEAL, VETERANS_INTUITION, PROVOKED_ANGER, IRON_WILL, MAX_HEALTH};
+					case MAGE:
+						return new Talent[]{EMPOWERING_MEAL, SCHOLARS_INTUITION, LINGERING_MAGIC, BACKUP_BARRIER, CHARGE_PRESERVE};
+					case ROGUE:
+						return new Talent[]{CACHED_RATIONS, THIEFS_INTUITION, SUCKER_PUNCH, PROTECTIVE_SHADOWS, EMERGENCY_ESCAPE};
+					case HUNTRESS:
+						return new Talent[]{NATURES_BOUNTY, SURVIVALISTS_INTUITION, FOLLOWUP_STRIKE, NATURES_AID, WATER_FRIENDLY};
+					case DUELIST:
+						return new Talent[]{STRENGTHENING_MEAL, ADVENTURERS_INTUITION, PATIENT_STRIKE, AGGRESSIVE_BARRIER, SKILLED_HAND};
+					case CLERIC:
+						return new Talent[]{SATIATED_SPELLS, HOLY_INTUITION, SEARING_LIGHT, SHIELD_OF_LIGHT, WARDING_LIGHT};
+					case GUNNER:
+						return new Talent[]{RELOADING_MEAL, GUNNERS_INTUITION, SPEEDY_MOVE, SAFE_RELOAD, CLOSE_COMBAT};
+					case SAMURAI:
+						return new Talent[]{BASIC_PRACTICE, MASTERS_INTUITION, DRAWING_ENHANCE, PARRING, ADRENALINE_SURGE};
+					case ADVENTURER:
+						return new Talent[]{HARVEST_BERRY, SAFE_POTION, ROOT, PROTECTIVE_SLASH, KINETIC_ATTACK};
+					case KNIGHT:
+						return new Talent[]{TOUGH_MEAL, KNIGHTS_INTUITION, KINETIC_BATTLE, HARD_SHIELD, WAR_CRY};
+					case MEDIC:
+						return new Talent[]{SCAR_ATTACK, DOCTORS_INTUITION, FINISH_ATTACK, FIRST_AID_TREAT, BREAKTHROUGH};
+					case ARCHER:
+						return new Talent[]{FORCE_SAVING, ARCHERS_INTUITION, LEG_SWEEP, SURVIVAL_TECHNIQUE, DEXTERITY};
+					case RAT_KING:
+						return new Talent[]{ROYAL_PRIVILEGE, ROYAL_INTUITION, KINGS_WISDOM, NOBLE_CAUSE, EXTRA_BULK, ROYAL_FOCUS, ROYAL_PERCEPTIVITY, AMBUSH, WELL_PROTECTED, EXTRA_POWER};
+				}
+			case 2:
+				switch (cls){
+					case WARRIOR: default:
+						return new Talent[]{IRON_STOMACH, LIQUID_WILLPOWER, RUNIC_TRANSFERENCE, LETHAL_MOMENTUM, IMPROVISED_PROJECTILES, PARRY};
+					case MAGE:
+						return new Talent[]{ENERGIZING_MEAL, INSCRIBED_POWER, WAND_PRESERVATION, ARCANE_VISION, SHIELD_BATTERY, FASTER_CHARGER};
+					case ROGUE:
+						return new Talent[]{MYSTICAL_MEAL, INSCRIBED_STEALTH, WIDE_SEARCH, SILENT_STEPS, ROGUES_FORESIGHT, MOVESPEED_ENHANCE};
+					case HUNTRESS:
+						return new Talent[]{INVIGORATING_MEAL, LIQUID_NATURE, REJUVENATING_STEPS, HEIGHTENED_SENSES, DURABLE_PROJECTILES, ADDED_MEAL};
+					case DUELIST:
+						return new Talent[]{FOCUSED_MEAL, LIQUID_AGILITY, WEAPON_RECHARGING, LETHAL_HASTE, SWIFT_EQUIP, ACCUMULATION};
+					case CLERIC:
+						return new Talent[]{ENLIGHTENING_MEAL, RECALL_INSCRIPTION, SUNRAY, DIVINE_SENSE, BLESS, DIVINE_BLAST};
+					case GUNNER:
+						return new Talent[]{INFINITE_BULLET_MEAL, INSCRIBED_BULLET, MIND_VISION, CAMOUFLAGE, LARGER_MAGAZINE, BULLET_COLLECT};
+					case SAMURAI:
+						return new Talent[]{CRITICAL_MEAL, INSCRIBED_LETHALITY, UNEXPECTED_SLASH, DRAGONS_EYE, WEAPON_MASTERY, CRITICAL_THROW};
+					case ADVENTURER:
+						return new Talent[]{NATURES_MEAL, PHARMACEUTICS, HERB_EXTRACTION, FIREWATCH, ROPE_REBOUND, WEAKENING_POISON};
+					case KNIGHT:
+						return new Talent[]{IMPREGNABLE_MEAL, SMITHING_SPELL, ARMOR_ADAPTION, CHIVALRY, PROTECTION, FLAG_OF_CONQUEST};
+					case MEDIC:
+						return new Talent[]{HEALING_MEAL, RECYCLING, HIGH_POWER, RADIATION, STRONG_HEALPOWER, DIET};
+					case ARCHER:
+						return new Talent[]{FIGHTING_MEAL, FULLY_POTION, NATURE_FRIENDLY, PUSHBACK, ARCHERS_FORESIGHT, POWERFUL_CRIT};
+					case RAT_KING:
+						return new Talent[]{ROYAL_MEAL, RESTORATION, POWER_WITHIN, KINGS_VISION, PURSUIT, ENERGY_SURGE,
+								ROYAL_FEAST, TEMPORARY_DRAUGHT, PERFECT_COLLECTION, KINGS_WRATH, THE_PROTECTOR, NOBLE_CALL};
+				}
+			case 3:
+				switch (cls){
+					case WARRIOR: default:
+						return new Talent[]{HOLD_FAST, STRONGMAN};
+					case MAGE:
+						return new Talent[]{DESPERATE_POWER, ALLY_WARP};
+					case ROGUE:
+						return new Talent[]{ENHANCED_RINGS, LIGHT_CLOAK};
+					case HUNTRESS:
+						return new Talent[]{POINT_BLANK, SEER_SHOT};
+					case DUELIST:
+						return new Talent[]{PRECISE_ASSAULT, DEADLY_FOLLOWUP};
+					case CLERIC:
+						return new Talent[]{CLEANSE, LIGHT_READING};
+					case GUNNER:
+						return new Talent[]{STREET_BATTLE, FAST_RELOAD};
+					case SAMURAI:
+						return new Talent[]{QUICK_SHEATHING, LETHAL_POWER};
+					case ADVENTURER:
+						return new Talent[]{LONG_MACHETE, BLOOMING_WEAPON};
+					case KNIGHT:
+						return new Talent[]{CRAFTMANS_SKILLS, TACKLE};
+					case MEDIC:
+						return new Talent[]{STRONG_NEXUS, TARGET_SET};
+					case ARCHER:
+						return new Talent[]{MAKESHIFT_BOW, FOLLOWUP_SHOOT};
+					case RAT_KING:
+						return new Talent[]{};
+				}
+		}
+		return new Talent[]{};
+	}
+
 	public static void initClassTalents( HeroClass cls, ArrayList<LinkedHashMap<Talent, Integer>> talents, LinkedHashMap<Talent, Talent> replacements ){
 		while (talents.size() < MAX_TALENT_TIERS){
 			talents.add(new LinkedHashMap<>());
@@ -2840,47 +3048,7 @@ public enum Talent {
 		ArrayList<Talent> tierTalents = new ArrayList<>();
 
 		//tier 1
-		switch (cls){
-			case WARRIOR: default:
-				Collections.addAll(tierTalents, HEARTY_MEAL, VETERANS_INTUITION, PROVOKED_ANGER, IRON_WILL, MAX_HEALTH);
-				break;
-			case MAGE:
-				Collections.addAll(tierTalents, EMPOWERING_MEAL, SCHOLARS_INTUITION, LINGERING_MAGIC, BACKUP_BARRIER, CHARGE_PRESERVE);
-				break;
-			case ROGUE:
-				Collections.addAll(tierTalents, CACHED_RATIONS, THIEFS_INTUITION, SUCKER_PUNCH, PROTECTIVE_SHADOWS, EMERGENCY_ESCAPE);
-				break;
-			case HUNTRESS:
-				Collections.addAll(tierTalents, NATURES_BOUNTY, SURVIVALISTS_INTUITION, FOLLOWUP_STRIKE, NATURES_AID, WATER_FRIENDLY);
-				break;
-			case DUELIST:
-				Collections.addAll(tierTalents, STRENGTHENING_MEAL, ADVENTURERS_INTUITION, PATIENT_STRIKE, AGGRESSIVE_BARRIER, SKILLED_HAND);
-				break;
-			case CLERIC:
-				Collections.addAll(tierTalents, SATIATED_SPELLS, HOLY_INTUITION, SEARING_LIGHT, SHIELD_OF_LIGHT, WARDING_LIGHT);
-				break;
-			case GUNNER:
-				Collections.addAll(tierTalents, RELOADING_MEAL, GUNNERS_INTUITION, SPEEDY_MOVE, SAFE_RELOAD, CLOSE_COMBAT);
-				break;
-			case SAMURAI:
-				Collections.addAll(tierTalents, BASIC_PRACTICE, MASTERS_INTUITION, DRAWING_ENHANCE, PARRING, ADRENALINE_SURGE);
-				break;
-			case ADVENTURER:
-				Collections.addAll(tierTalents, HARVEST_BERRY, SAFE_POTION, ROOT, PROTECTIVE_SLASH, KINETIC_ATTACK);
-				break;
-			case KNIGHT:
-				Collections.addAll(tierTalents, TOUGH_MEAL, KNIGHTS_INTUITION, KINETIC_BATTLE, HARD_SHIELD, WAR_CRY	);
-				break;
-			case MEDIC:
-				Collections.addAll(tierTalents, SCAR_ATTACK, DOCTORS_INTUITION, FINISH_ATTACK, FIRST_AID_TREAT, BREAKTHROUGH);
-				break;
-			case ARCHER:
-				Collections.addAll(tierTalents, FORCE_SAVING, ARCHERS_INTUITION, LEG_SWEEP, SURVIVAL_TECHNIQUE, DEXTERITY);
-				break;
-			case RAT_KING:
-				Collections.addAll(tierTalents, ROYAL_PRIVILEGE, ROYAL_INTUITION, KINGS_WISDOM, NOBLE_CAUSE, EXTRA_BULK, ROYAL_FOCUS, ROYAL_PERCEPTIVITY, AMBUSH, WELL_PROTECTED, EXTRA_POWER);
-				break;
-		}
+		Collections.addAll(tierTalents, talentList(cls, 1));
 		for (Talent talent : tierTalents){
 			if (replacements.containsKey(talent)){
 				talent = replacements.get(talent);
@@ -2890,48 +3058,7 @@ public enum Talent {
 		tierTalents.clear();
 
 		//tier 2
-		switch (cls){
-			case WARRIOR: default:
-				Collections.addAll(tierTalents, IRON_STOMACH, LIQUID_WILLPOWER, RUNIC_TRANSFERENCE, LETHAL_MOMENTUM, IMPROVISED_PROJECTILES, PARRY);
-				break;
-			case MAGE:
-				Collections.addAll(tierTalents, ENERGIZING_MEAL, INSCRIBED_POWER, WAND_PRESERVATION, ARCANE_VISION, SHIELD_BATTERY, FASTER_CHARGER);
-				break;
-			case ROGUE:
-				Collections.addAll(tierTalents, MYSTICAL_MEAL, INSCRIBED_STEALTH, WIDE_SEARCH, SILENT_STEPS, ROGUES_FORESIGHT, MOVESPEED_ENHANCE);
-				break;
-			case HUNTRESS:
-				Collections.addAll(tierTalents, INVIGORATING_MEAL, LIQUID_NATURE, REJUVENATING_STEPS, HEIGHTENED_SENSES, DURABLE_PROJECTILES, ADDED_MEAL);
-				break;
-			case DUELIST:
-				Collections.addAll(tierTalents, FOCUSED_MEAL, LIQUID_AGILITY, WEAPON_RECHARGING, LETHAL_HASTE, SWIFT_EQUIP, ACCUMULATION);
-				break;
-			case CLERIC:
-				Collections.addAll(tierTalents, ENLIGHTENING_MEAL, RECALL_INSCRIPTION, SUNRAY, DIVINE_SENSE, BLESS, DIVINE_BLAST);
-				break;
-			case GUNNER:
-				Collections.addAll(tierTalents, INFINITE_BULLET_MEAL, INSCRIBED_BULLET, MIND_VISION, CAMOUFLAGE, LARGER_MAGAZINE, BULLET_COLLECT);
-				break;
-			case SAMURAI:
-				Collections.addAll(tierTalents, CRITICAL_MEAL, INSCRIBED_LETHALITY, UNEXPECTED_SLASH, DRAGONS_EYE, WEAPON_MASTERY, CRITICAL_THROW);
-				break;
-			case ADVENTURER:
-				Collections.addAll(tierTalents, NATURES_MEAL, PHARMACEUTICS, HERB_EXTRACTION, FIREWATCH, ROPE_REBOUND, WEAKENING_POISON);
-				break;
-			case KNIGHT:
-				Collections.addAll(tierTalents, IMPREGNABLE_MEAL, SMITHING_SPELL, ARMOR_ADAPTION, CHIVALRY, PROTECTION, FLAG_OF_CONQUEST);
-				break;
-			case MEDIC:
-				Collections.addAll(tierTalents, HEALING_MEAL, RECYCLING, HIGH_POWER, RADIATION, STRONG_HEALPOWER, DIET);
-				break;
-			case ARCHER:
-				Collections.addAll(tierTalents, FIGHTING_MEAL, FULLY_POTION, NATURE_FRIENDLY, PUSHBACK, ARCHERS_FORESIGHT, POWERFUL_CRIT);
-				break;
-			case RAT_KING:
-				Collections.addAll(tierTalents, ROYAL_MEAL, RESTORATION, POWER_WITHIN, KINGS_VISION, PURSUIT, ENERGY_SURGE,
-						ROYAL_FEAST, TEMPORARY_DRAUGHT, PERFECT_COLLECTION, KINGS_WRATH, THE_PROTECTOR, NOBLE_CALL);
-				break;
-		}
+		Collections.addAll(tierTalents, talentList(cls, 2));
 		for (Talent talent : tierTalents){
 			if (replacements.containsKey(talent)){
 				talent = replacements.get(talent);
@@ -2941,46 +3068,7 @@ public enum Talent {
 		tierTalents.clear();
 
 		//tier 3
-		switch (cls){
-			case WARRIOR: default:
-				Collections.addAll(tierTalents, HOLD_FAST, STRONGMAN);
-				break;
-			case MAGE:
-				Collections.addAll(tierTalents, DESPERATE_POWER, ALLY_WARP);
-				break;
-			case ROGUE:
-				Collections.addAll(tierTalents, ENHANCED_RINGS, LIGHT_CLOAK);
-				break;
-			case HUNTRESS:
-				Collections.addAll(tierTalents, POINT_BLANK, SEER_SHOT);
-				break;
-			case DUELIST:
-				Collections.addAll(tierTalents, PRECISE_ASSAULT, DEADLY_FOLLOWUP);
-				break;
-			case CLERIC:
-				Collections.addAll(tierTalents, CLEANSE, LIGHT_READING);
-				break;
-			case GUNNER:
-				Collections.addAll(tierTalents, STREET_BATTLE, FAST_RELOAD);
-				break;
-			case SAMURAI:
-				Collections.addAll(tierTalents, QUICK_SHEATHING, LETHAL_POWER);
-				break;
-			case ADVENTURER:
-				Collections.addAll(tierTalents, LONG_MACHETE, BLOOMING_WEAPON);
-				break;
-			case KNIGHT:
-				Collections.addAll(tierTalents, CRAFTMANS_SKILLS, TACKLE);
-				break;
-			case MEDIC:
-				Collections.addAll(tierTalents, STRONG_NEXUS, TARGET_SET);
-				break;
-			case ARCHER:
-				Collections.addAll(tierTalents, MAKESHIFT_BOW, FOLLOWUP_SHOOT);
-				break;
-			case RAT_KING:
-				break;
-		}
+		Collections.addAll(tierTalents, talentList(cls, 3));
 		for (Talent talent : tierTalents){
 			if (replacements.containsKey(talent)){
 				talent = replacements.get(talent);
@@ -3225,9 +3313,7 @@ public enum Talent {
 			Bundle tierBundle = new Bundle();
 
 			for (Talent talent : tier.keySet()){
-				if (tier.get(talent) > 0){
-					tierBundle.put(talent.name(), tier.get(talent));
-				}
+				tierBundle.put(talent.name(), tier.get(talent));
 				if (tierBundle.contains(talent.name())){
 					tier.put(talent, Math.min(tierBundle.getInt(talent.name()), talent.maxPoints()));
 				}
@@ -3285,9 +3371,7 @@ public enum Talent {
 					if (!removedTalents.contains(tName)) {
 						try {
 							Talent talent = Talent.valueOf(tName);
-							if (tier.containsKey(talent)) {
-								tier.put(talent, Math.min(points, talent.maxPoints()));
-							}
+							tier.put(talent, Math.min(points, talent.maxPoints()));
 						} catch (Exception e) {
 							ShatteredPixelDungeon.reportException(e);
 						}

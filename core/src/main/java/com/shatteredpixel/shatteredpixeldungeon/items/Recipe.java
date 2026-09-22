@@ -21,6 +21,8 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.items;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
+
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.items.bombs.Bomb;
 import com.shatteredpixel.shatteredpixeldungeon.items.changer.BluePrint;
@@ -34,6 +36,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.CausticBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.InfernalBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.ShockingBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.UnstableBrew;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.DoNotDieElixir;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfAquaticRejuvenation;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfArcaneArmor;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfDragonsBlood;
@@ -43,7 +46,9 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfIc
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfMight;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfTalent;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfToxicEssence;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.KromerPotion;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.ExoticPotion;
+import com.shatteredpixel.shatteredpixeldungeon.items.quest.Kromer;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.RedCrystal;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.exotic.ExoticScroll;
@@ -56,11 +61,14 @@ import com.shatteredpixel.shatteredpixeldungeon.items.spells.Evolution;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.FireImbueSpell;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.FireMaker;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.IceMaker;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.KromerScroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.MagicalInfusion;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.PhaseShift;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.Pipisfusion;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.RapidGrowth;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.ReclaimTrap;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.Recycle;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.ScammingSpell;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.SummonElemental;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.TelekineticGrab;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.UnstableIdentification;
@@ -78,8 +86,6 @@ import com.shatteredpixel.shatteredpixeldungeon.items.weapon.missiles.alchemy.Po
 import com.watabou.utils.Reflection;
 
 import java.util.ArrayList;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero;
 
 public abstract class Recipe {
 	
@@ -243,7 +249,12 @@ public abstract class Recipe {
 		new FireImbueSpell.Recipe(),
 		new ElixirOfTalent.Recipe(),
 		new UpgradeDust.Recipe(),
-		new UnstableIdentification.Recipe()
+		new UnstableIdentification.Recipe(),
+		new ScammingSpell.Recipe(),
+		new KromerScroll.Recipe(),
+		new DoNotDieElixir.Recipe(),
+		new KromerPotion.Recipe(),
+		new Pipisfusion.Recipe()
 	};
 	
 	private static Recipe[] threeIngredientRecipes = new Recipe[]{
@@ -300,7 +311,7 @@ public abstract class Recipe {
 			return item.cursedKnown && !item.cursed;
 		} else {
 			//other items can be unidentified, but not cursed
-			return !item.cursed;
+			return !item.cursed || item instanceof Kromer;
 		}
 	}
 }

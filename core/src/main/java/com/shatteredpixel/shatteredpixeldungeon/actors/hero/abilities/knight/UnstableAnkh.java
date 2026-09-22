@@ -46,7 +46,7 @@ public class UnstableAnkh extends ArmorAbility {
 	}
 
 	@Override
-	protected void activate(ClassArmor armor, Hero hero, Integer target) {
+    public void activate(ClassArmor armor, Hero hero, Integer target) {
 
 		int duration = 1;
 		if (hero.hasTalent(Talent.ANKH_ENHANCE)) {

@@ -46,6 +46,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.CausticBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.InfernalBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.ShockingBrew;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.brews.UnstableBrew;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.DoNotDieElixir;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfAquaticRejuvenation;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfArcaneArmor;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfDragonsBlood;
@@ -55,6 +56,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfIc
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfMight;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfTalent;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfToxicEssence;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.KromerPotion;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.ExoticPotion;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.RedCrystal;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
@@ -68,11 +70,14 @@ import com.shatteredpixel.shatteredpixeldungeon.items.spells.Evolution;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.FireImbueSpell;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.FireMaker;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.IceMaker;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.KromerScroll;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.MagicalInfusion;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.PhaseShift;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.Pipisfusion;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.RapidGrowth;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.ReclaimTrap;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.Recycle;
+import com.shatteredpixel.shatteredpixeldungeon.items.spells.ScammingSpell;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.SummonElemental;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.TelekineticGrab;
 import com.shatteredpixel.shatteredpixeldungeon.items.spells.UnstableIdentification;
@@ -419,6 +424,8 @@ public class QuickRecipe extends Component {
 				result.add(new QuickRecipe(new ElixirOfFeatherFall.Recipe()));
 				result.add(new QuickRecipe(new ElixirOfMight.Recipe()));
 				result.add(new QuickRecipe(new ElixirOfTalent.Recipe()));
+				result.add(new QuickRecipe(new DoNotDieElixir.Recipe()));
+				result.add(new QuickRecipe(new KromerPotion.Recipe()));
 				return result;
 			case 8:
 				result.add(new QuickRecipe(new UnstableSpell.Recipe(), new ArrayList<>(Arrays.asList(new Scroll.PlaceHolder(), new  Runestone.PlaceHolder())), new UnstableSpell()));
@@ -445,6 +452,9 @@ public class QuickRecipe extends Component {
 				result.add(new QuickRecipe(new FireImbueSpell.Recipe()));
 				result.add(new QuickRecipe(new ElectricityImbue.Recipe()));
 				result.add(new QuickRecipe(new UnstableIdentification.Recipe()));
+				result.add(new QuickRecipe(new ScammingSpell.Recipe()));
+				result.add(new QuickRecipe(new KromerScroll.Recipe()));
+				result.add(new QuickRecipe(new Pipisfusion.Recipe()));
 				if (Dungeon.branch == AbyssLevel.BRANCH){
 					result.add(new QuickRecipe(new RedCrystal.StrengthRecipe()));
 				}

@@ -35,6 +35,7 @@ import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.LostInventory;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicImmune;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicalCircle;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicalEmpower;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.PowerfulDegrade;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Recharging;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Regeneration;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.ScrollEmpower;
@@ -442,6 +443,8 @@ public abstract class Wand extends Item {
 					lvl = Math.min(lvl + bonus, maxBonusLevel);
 				}
 			}
+
+			if (Dungeon.hero != null && Dungeon.hero.buff(PowerfulDegrade.class) != null) return 0;
 
 			WandOfMagicMissile.MagicCharge buff = charger.target.buff(WandOfMagicMissile.MagicCharge.class);
 			if (buff != null && buff.level() > lvl){

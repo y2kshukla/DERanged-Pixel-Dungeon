@@ -21,6 +21,8 @@
 
 package com.shatteredpixel.shatteredpixeldungeon;
 
+import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.level;
+
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.AscensionChallenge;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
@@ -33,7 +35,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.bags.PotionBandolier;
 import com.shatteredpixel.shatteredpixeldungeon.items.bags.ScrollHolder;
 import com.shatteredpixel.shatteredpixeldungeon.items.bags.VelvetPouch;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.Potion;
-import com.shatteredpixel.shatteredpixeldungeon.items.potions.elixirs.ElixirOfMight;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.exotic.PotionOfDivineInspiration;
 import com.shatteredpixel.shatteredpixeldungeon.items.quest.Pickaxe;
 import com.shatteredpixel.shatteredpixeldungeon.items.remains.RemainsItem;
 import com.shatteredpixel.shatteredpixeldungeon.items.scrolls.Scroll;
@@ -58,8 +60,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-
-import static com.shatteredpixel.shatteredpixeldungeon.Dungeon.level;
 
 public class Badges {
 
@@ -1041,32 +1041,35 @@ public class Badges {
 				badge = Badge.BOSS_CHALLENGE_5;
 				break;
 		}
-        Hero hero = Dungeon.hero;
-        if (hero.hasTalent(Talent.BETTERER_CHOICE)){
-            ArrayList<Item> rewards = new ArrayList<>();
-            int points = hero.pointsInTalent(Talent.BETTERER_CHOICE);
-            if (points > 0){
-                rewards.add(new StoneOfEnchantment().quantity(2));
-            }
-            if (points > 1){
-                rewards.add(new ElixirOfMight());
-            }
-            if (points > 2){
-                rewards.add(new ScrollOfMetamorphosis().quantity(2));
-            }
-            for (Item reward: rewards){
-                if (reward.doPickUp( Dungeon.hero )) {
-                    GLog.i( Messages.get(Dungeon.hero, "you_now_have", reward.name() ));
-                    hero.spend(-1);
-                } else {
-                    level.drop( reward, Dungeon.hero.pos ).sprite.drop();
-                }
-            }
-        }
 
 		if (badge != null) {
 			local.add(badge);
 			displayBadge(badge);
+		}
+	}
+
+	public static void validateBettererChoice(int boss){
+		Hero hero = Dungeon.hero;
+		if (hero.hasTalent(Talent.BETTERER_CHOICE) && (boss > 4 ? Statistics.questScores[boss-5] : Statistics.bossScores[boss]) >= 0){
+			ArrayList<Item> rewards = new ArrayList<>();
+			int points = hero.pointsInTalent(Talent.BETTERER_CHOICE);
+			if (points > 0){
+				rewards.add(new StoneOfEnchantment());
+			}
+			if (points > 1){
+				rewards.add(new ScrollOfMetamorphosis());
+			}
+			if (points > 1){
+				rewards.add(new PotionOfDivineInspiration());
+			}
+			for (Item reward: rewards){
+				if (reward.doPickUp( Dungeon.hero )) {
+					GLog.i( Messages.get(Dungeon.hero, "you_now_have", reward.name() ));
+					hero.spend(-1);
+				} else {
+					level.drop( reward, Dungeon.hero.pos ).sprite.drop();
+				}
+			}
 		}
 	}
 	

@@ -231,14 +231,14 @@ public class DungeonSeed {
 				list.addAll(Arrays.asList(SpecialSeed.values()));
 			}
 		},
-//		NO_WARP("ROT-INM-IND"){
-//			@Override
-//			public Image getIcon() {
-//				Image sprite = new BuffIcon(BuffIndicator.WARP, true);
-//				sprite.hardlight(0x333333);
-//				return sprite;
-//			}
-//		},
+		NO_WARP("ROT-INM-IND"){
+			@Override
+			public Image getIcon() {
+				Image sprite = new BuffIcon(BuffIndicator.WARP, true);
+				sprite.hardlight(0x333333);
+				return sprite;
+			}
+		},
 		CAPITALISM("IWA-NTM-ONY"){
 			@Override
 			public Image getIcon() {
@@ -406,7 +406,7 @@ public class DungeonSeed {
 				list.add(ECH);
 				list.add(ALLIES);
 				list.add(ENCHANTED_WORLD);
-//				list.add(NO_WARP);
+				list.add(NO_WARP);
 			}
 
 			@Override
